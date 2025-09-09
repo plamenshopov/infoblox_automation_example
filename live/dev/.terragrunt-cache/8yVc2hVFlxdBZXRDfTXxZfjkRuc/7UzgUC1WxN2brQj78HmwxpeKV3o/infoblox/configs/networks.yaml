@@ -1,0 +1,29 @@
+# Development Environment Network Configurations
+# Add your network definitions here
+
+dev_network_1:
+  network_view: "default"
+  network: "10.1.0.0/24"
+  comment: "Development network 1"
+  ea_tags:
+    Department: "Engineering"
+    Purpose: "Development"
+    Owner: "DevOps Team"
+
+dev_network_2:
+  network_view: "default"
+  network: "10.1.1.0/24"
+  comment: "Development network 2 - DMZ"
+  ea_tags:
+    Department: "Engineering"
+    Purpose: "Development DMZ"
+    Owner: "Security Team"
+
+dev_test_network:
+  network_view: "default"
+  network: "192.168.100.0/24"
+  comment: "Development testing network"
+  ea_tags:
+    Department: "Engineering"
+    Purpose: "Testing"
+    Owner: "QA Team"

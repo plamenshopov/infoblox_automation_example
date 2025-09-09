@@ -103,14 +103,6 @@ docs: ## Generate documentation
 	@terraform-docs markdown table --output-file README.md modules/dns/
 	@echo "$(GREEN)Documentation generated$(NC)"
 
-test: validate lint ## Run all tests and validations
-	@echo "$(BLUE)Running all tests and validations...$(NC)"
-	@for env in dev staging prod; do \
-		echo "Testing $$env environment..."; \
-		make validate ENV=$$env; \
-	done
-	@echo "$(GREEN)All tests passed$(NC)"
-
 setup-dev: ## [DEPRECATED] Set up development environment (not needed with Terragrunt)
 	@echo "$(YELLOW)WARNING: This target is no longer needed with Terragrunt$(NC)"
 	@echo "$(BLUE)With Terragrunt, just edit live/dev/terragrunt.hcl directly$(NC)"
@@ -158,6 +150,36 @@ prod-apply: ## [DEPRECATED] Quick apply for production environment (use tg-prod-
 	@read -p "Type 'PRODUCTION' to confirm: " confirm && [ "$$confirm" = "PRODUCTION" ] || exit 1
 	@make tg-apply ENV=prod
 
+# Backstage resource management
+backstage-list: ## List all Backstage resources in environment
+	@echo "$(BLUE)Listing Backstage resources in $(ENV) environment...$(NC)"
+	@./scripts/backstage-cleanup.sh list-backstage $(ENV)
+
+backstage-cleanup-id: ## Remove specific Backstage resource by ID (usage: make backstage-cleanup-id ENV=dev ID=resource-id)
+	@if [ -z "$(ID)" ]; then echo "$(RED)Error: ID parameter required. Usage: make backstage-cleanup-id ENV=dev ID=resource-id$(NC)"; exit 1; fi
+	@echo "$(BLUE)Cleaning up Backstage resource $(ID) in $(ENV) environment...$(NC)"
+	@./scripts/backstage-cleanup.sh cleanup-id $(ENV) $(ID)
+
+backstage-cleanup-entity: ## Remove all resources for entity (usage: make backstage-cleanup-entity ENV=dev ENTITY=my-app)
+	@if [ -z "$(ENTITY)" ]; then echo "$(RED)Error: ENTITY parameter required. Usage: make backstage-cleanup-entity ENV=dev ENTITY=my-app$(NC)"; exit 1; fi
+	@echo "$(BLUE)Cleaning up all resources for entity $(ENTITY) in $(ENV) environment...$(NC)"
+	@./scripts/backstage-cleanup.sh cleanup-entity $(ENV) $(ENTITY)
+
+backstage-preview-id: ## Preview what would be removed for specific ID (usage: make backstage-preview-id ENV=dev ID=resource-id)
+	@if [ -z "$(ID)" ]; then echo "$(RED)Error: ID parameter required. Usage: make backstage-preview-id ENV=dev ID=resource-id$(NC)"; exit 1; fi
+	@echo "$(BLUE)Previewing cleanup for resource $(ID) in $(ENV) environment...$(NC)"
+	@./scripts/backstage-cleanup.sh preview-id $(ENV) $(ID)
+
+backstage-preview-entity: ## Preview what would be removed for entity (usage: make backstage-preview-entity ENV=dev ENTITY=my-app)
+	@if [ -z "$(ENTITY)" ]; then echo "$(RED)Error: ENTITY parameter required. Usage: make backstage-preview-entity ENV=dev ENTITY=my-app$(NC)"; exit 1; fi
+	@echo "$(BLUE)Previewing cleanup for entity $(ENTITY) in $(ENV) environment...$(NC)"
+	@./scripts/backstage-cleanup.sh preview-entity $(ENV) $(ENTITY)
+
+# State validation targets
+validate-state: ## Validate Terraform/Terragrunt state consistency for environment
+	@echo "$(BLUE)Validating state consistency for $(ENV) environment...$(NC)"
+	@./scripts/backstage-cleanup.sh validate-state $(ENV)
+
 # Terragrunt targets
 tg-plan: check-terragrunt ## Plan with Terragrunt for specified environment
 	@echo "$(BLUE)Planning with Terragrunt for $(ENV) environment...$(NC)"
@@ -167,8 +189,15 @@ tg-apply: check-terragrunt ## Apply with Terragrunt for specified environment
 	@echo "$(BLUE)Applying with Terragrunt for $(ENV) environment...$(NC)"
 	@./scripts/terragrunt-deploy.sh $(ENV) apply
 
-tg-destroy: check-terragrunt ## Destroy with Terragrunt for specified environment
-	@echo "$(RED)WARNING: This will destroy all resources in $(ENV) environment!$(NC)"
+tg-destroy: check-terragrunt ## [DANGEROUS] Destroy ALL resources in specified environment
+	@echo "$(RED)⚠️  DANGER: This will destroy ALL resources in $(ENV) environment!$(NC)"
+	@echo "$(RED)This includes both Backstage AND manually created resources!$(NC)"
+	@echo "$(YELLOW)Consider using targeted cleanup instead:$(NC)"
+	@echo "  make backstage-list ENV=$(ENV)                    # List Backstage resources"
+	@echo "  make backstage-cleanup-entity ENV=$(ENV) ENTITY=my-app  # Remove specific entity"
+	@echo "  make backstage-cleanup-id ENV=$(ENV) ID=resource-id     # Remove specific resource"
+	@echo ""
+	@read -p "Type 'DESTROY-ALL-$(ENV)' to confirm total destruction: " confirm && [ "$$confirm" = "DESTROY-ALL-$(ENV)" ] || exit 1
 	@./scripts/terragrunt-deploy.sh $(ENV) destroy
 
 tg-output: check-terragrunt ## Show Terragrunt outputs for specified environment
@@ -187,6 +216,21 @@ tg-clean: ## Clean Terragrunt cache
 	@echo "$(BLUE)Cleaning Terragrunt cache...$(NC)"
 	@find live -name ".terragrunt-cache" -type d -exec rm -rf {} + 2>/dev/null || true
 	@echo "$(GREEN)Terragrunt cache cleaned$(NC)"
+
+# Testing targets
+test: ## Run basic setup tests
+	@echo "$(BLUE)Running basic setup tests...$(NC)"
+	@./test-setup.sh
+
+test-comprehensive: ## Run comprehensive test suite
+	@echo "$(BLUE)Running comprehensive test suite...$(NC)"
+	@./test-comprehensive.sh
+
+test-makefile: ## Test Makefile targets (safe operations only)
+	@echo "$(BLUE)Testing Makefile functionality...$(NC)"
+	@make help >/dev/null && echo "$(GREEN)✓ Help target working$(NC)"
+	@make backstage-list ENV=dev >/dev/null && echo "$(GREEN)✓ Backstage list working$(NC)"
+	@make validate-state ENV=dev >/dev/null && echo "$(GREEN)✓ State validation working$(NC)"
 
 # Quick Terragrunt commands
 tg-dev-plan: ## Quick Terragrunt plan for dev environment

@@ -137,6 +137,36 @@ class InfobloxResourceManager:
         pattern = r'^[a-z0-9-]+-(?:dev|staging|prod)-\d{14}$'
         return bool(re.match(pattern, backstage_id))
 
+    def remove_backstage_resource(self, backstage_id: str) -> bool:
+        """Remove a Backstage resource from configuration files"""
+        if backstage_id not in self.backstage_resources:
+            print(f"❌ Resource with ID '{backstage_id}' not found")
+            return False
+        
+        resource_info = self.backstage_resources[backstage_id]
+        source_file = resource_info['source_file']
+        resource_name = resource_info['resource_name']
+        
+        file_path = self.config_path / source_file
+        
+        # Load the file
+        with open(file_path, 'r') as f:
+            data = yaml.safe_load(f) or {}
+        
+        # Remove the resource
+        if resource_name in data:
+            del data[resource_name]
+            
+            # Write back to file
+            with open(file_path, 'w') as f:
+                yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+            
+            print(f"✅ Removed resource '{resource_name}' from {source_file}")
+            return True
+        else:
+            print(f"❌ Resource '{resource_name}' not found in {source_file}")
+            return False
+
 def main():
     parser = argparse.ArgumentParser(description='Manage Infoblox resources created by Backstage')
     parser.add_argument('--config-path', '-p', default='.', 
@@ -153,11 +183,19 @@ def main():
     # Find command
     find_parser = subparsers.add_parser('find', help='Find resources by entity')
     find_parser.add_argument('entity_name', help='Entity name to search for')
+    find_parser.add_argument('--format', '-f', choices=['table', 'json'], 
+                           default='table', help='Output format')
     
     # Cleanup command
     cleanup_parser = subparsers.add_parser('cleanup', help='Generate cleanup configuration')
     cleanup_parser.add_argument('backstage_ids', nargs='+', help='Backstage IDs to clean up')
     cleanup_parser.add_argument('--output', '-o', help='Output file for cleanup config')
+    cleanup_parser.add_argument('--dry-run', action='store_true', help='Show what would be removed without doing it')
+    cleanup_parser.add_argument('--quiet', action='store_true', help='Minimal output')
+    
+    # Remove command
+    remove_parser = subparsers.add_parser('remove', help='Remove resource from configuration')
+    remove_parser.add_argument('backstage_id', help='Backstage ID to remove')
     
     # Validate command
     validate_parser = subparsers.add_parser('validate', help='Validate Backstage ID format')
@@ -189,19 +227,32 @@ def main():
     
     elif args.command == 'find':
         resources = manager.find_resources_by_entity(args.entity_name)
-        print(f"Resources for entity '{args.entity_name}':")
-        for resource in resources:
-            print(f"  - {resource['backstage_id']} ({resource['record_type']})")
+        
+        if args.format == 'json':
+            import json
+            print(json.dumps(resources, indent=2))
+        else:
+            print(f"Resources for entity '{args.entity_name}':")
+            for resource in resources:
+                print(f"  - {resource['backstage_id']} ({resource['record_type']})")
     
     elif args.command == 'cleanup':
         cleanup_config = manager.generate_cleanup_config(args.backstage_ids)
         
-        if args.output:
+        if args.dry_run:
+            print("🔍 Dry run - showing what would be removed:")
+            print(yaml.dump(cleanup_config, default_flow_style=False))
+        elif args.output:
             with open(args.output, 'w') as f:
                 yaml.dump(cleanup_config, f, default_flow_style=False)
             print(f"Cleanup configuration written to {args.output}")
         else:
             print(yaml.dump(cleanup_config, default_flow_style=False))
+    
+    elif args.command == 'remove':
+        success = manager.remove_backstage_resource(args.backstage_id)
+        if not success:
+            sys.exit(1)
     
     elif args.command == 'validate':
         is_valid = manager.validate_backstage_id_format(args.backstage_id)
