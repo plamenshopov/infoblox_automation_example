@@ -1,0 +1,30 @@
+# Test fixture: New CNAME records from Backstage
+
+# Environment: test-env
+# Backstage ID: my-app-test-20250909120000
+
+my_app_www:
+  alias: "www.my-app.example.com"
+  canonical: "web.my-app.example.com"
+  view: "default"
+  ttl: 3600
+  comment: "My app www alias | Backstage ID: my-app-test-20250909120000"
+  ea_tags:
+    Owner: "platform-team"
+    CreatedBy: "backstage"
+    CreatedAt: "2025-09-09T12:00:00Z"
+    BackstageId: "my-app-test-20250909120000"
+    BackstageEntity: "my-app"
+
+my_app_api_alias:
+  alias: "api-v2.my-app.example.com"
+  canonical: "api.my-app.example.com"
+  view: "default"
+  ttl: 1800
+  comment: "My app API v2 alias | Backstage ID: my-app-test-20250909120000"
+  ea_tags:
+    Owner: "platform-team"
+    CreatedBy: "backstage"
+    CreatedAt: "2025-09-09T12:00:00Z"
+    BackstageId: "my-app-test-20250909120000"
+    BackstageEntity: "my-app"

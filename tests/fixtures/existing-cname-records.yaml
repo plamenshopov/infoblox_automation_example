@@ -1,0 +1,26 @@
+# Test fixture: CNAME records for testing
+
+# Existing CNAME records
+www_legacy:
+  alias: "www.legacy.example.com"
+  canonical: "legacy.example.com"
+  view: "default"
+  ttl: 3600
+  comment: "Legacy www redirect"
+  ea_tags:
+    Owner: "ops-team"
+    Purpose: "redirect"
+
+# Backstage-managed CNAME
+api_alias:
+  alias: "api-v1.old-app.example.com"
+  canonical: "api.old-app.example.com"
+  view: "default"
+  ttl: 1800
+  comment: "API version alias | Backstage ID: old-app-test-20250901120000"
+  ea_tags:
+    Owner: "dev-team"
+    CreatedBy: "backstage"
+    CreatedAt: "2025-09-01T12:00:00Z"
+    BackstageId: "old-app-test-20250901120000"
+    BackstageEntity: "old-app"

@@ -1,0 +1,42 @@
+# Test fixture: Existing A Records in environment
+# This simulates an existing a-records.yaml file with manual and Backstage resources
+
+# Manual resource (no BackstageId)
+legacy_web_server:
+  fqdn: "legacy.example.com"
+  ip_addr: "10.1.1.50"
+  view: "default"
+  ttl: 3600
+  comment: "Legacy web server - manually created"
+  ea_tags:
+    Owner: "ops-team"
+    Environment: "test"
+    Purpose: "legacy-web"
+
+# Existing Backstage resource
+old_app_api:
+  fqdn: "api.old-app.example.com"
+  ip_addr: "10.1.1.100"
+  view: "default"
+  ttl: 3600
+  comment: "Old app API | Backstage ID: old-app-test-20250901120000"
+  ea_tags:
+    Owner: "dev-team"
+    CreatedBy: "backstage"
+    CreatedAt: "2025-09-01T12:00:00Z"
+    BackstageId: "old-app-test-20250901120000"
+    BackstageEntity: "old-app"
+    Department: "Engineering"
+
+# Another manual resource
+database_server:
+  fqdn: "db.example.com"
+  ip_addr: "10.1.1.200"
+  view: "default"
+  ttl: 7200
+  comment: "Main database server"
+  ea_tags:
+    Owner: "dba-team"
+    Environment: "test"
+    Purpose: "database"
+    CriticalService: "true"

@@ -1,0 +1,82 @@
+# Generated DNS Record Configuration
+# Record: ${{ values.recordName }}
+# Type: ${{ values.recordType }}
+# Environment: ${{ values.environment }}
+# Generated: ${{ "" | now }}
+# Backstage ID: ${{ values.backstageId }}
+
+{%- if values.recordType == "A" %}
+${{ values.recordName | replace(".", "_") }}:
+  fqdn: "${{ values.recordName }}"
+  ip_addr: "${{ values.ipAddress }}"
+  view: "default"
+  ttl: ${{ values.ttl }}
+  comment: "${{ values.comment }} | Backstage ID: ${{ values.backstageId }}"
+  ea_tags:
+    Owner: "${{ values.owner }}"
+    CreatedBy: "backstage"
+    CreatedAt: "${{ "" | now }}"
+    BackstageId: "${{ values.backstageId }}"
+    BackstageEntity: "${{ values.entityName }}"
+{%- if values.tags.Department %}
+    Department: "${{ values.tags.Department }}"
+{%- endif %}
+{%- if values.tags.Purpose %}
+    Purpose: "${{ values.tags.Purpose }}"
+{%- endif %}
+{%- if values.tags.CostCenter %}
+    CostCenter: "${{ values.tags.CostCenter }}"
+{%- endif %}
+
+{%- elif values.recordType == "CNAME" %}
+${{ values.recordName | replace(".", "_") }}:
+  alias: "${{ values.recordName }}"
+  canonical: "${{ values.canonical }}"
+  view: "default"
+  ttl: ${{ values.ttl }}
+  comment: "${{ values.comment }} | Backstage ID: ${{ values.backstageId }}"
+  ea_tags:
+    Owner: "${{ values.owner }}"
+    CreatedBy: "backstage"
+    CreatedAt: "${{ "" | now }}"
+    BackstageId: "${{ values.backstageId }}"
+    BackstageEntity: "${{ values.entityName }}"
+{%- if values.tags.Department %}
+    Department: "${{ values.tags.Department }}"
+{%- endif %}
+{%- if values.tags.Purpose %}
+    Purpose: "${{ values.tags.Purpose }}"
+{%- endif %}
+{%- if values.tags.CostCenter %}
+    CostCenter: "${{ values.tags.CostCenter }}"
+{%- endif %}
+
+{%- elif values.recordType == "HOST" %}
+${{ values.recordName | replace(".", "_") }}:
+  fqdn: "${{ values.recordName }}"
+{%- if values.ipAddress %}
+  ip_addr: "${{ values.ipAddress }}"
+  allocate_ip: false
+{%- else %}
+  network: "${{ values.network }}"
+  allocate_ip: true
+{%- endif %}
+  view: "default"
+  ttl: ${{ values.ttl }}
+  comment: "${{ values.comment }} | Backstage ID: ${{ values.backstageId }}"
+  ea_tags:
+    Owner: "${{ values.owner }}"
+    CreatedBy: "backstage"
+    CreatedAt: "${{ "" | now }}"
+    BackstageId: "${{ values.backstageId }}"
+    BackstageEntity: "${{ values.entityName }}"
+{%- if values.tags.Department %}
+    Department: "${{ values.tags.Department }}"
+{%- endif %}
+{%- if values.tags.Purpose %}
+    Purpose: "${{ values.tags.Purpose }}"
+{%- endif %}
+{%- if values.tags.CostCenter %}
+    CostCenter: "${{ values.tags.CostCenter }}"
+{%- endif %}
+{%- endif %}

@@ -1,0 +1,48 @@
+name: 'Merge DNS Configuration'
+description: 'Merge Backstage-generated DNS configurations into environment files'
+inputs:
+  environment:
+    description: 'Target environment (dev/staging/prod)'
+    required: true
+  entity_name:
+    description: 'Backstage entity name'
+    required: true
+  backstage_id:
+    description: 'Unique Backstage identifier'
+    required: true
+  merge_strategy:
+    description: 'Merge conflict resolution strategy'
+    required: false
+    default: 'backstage-wins'
+outputs:
+  merge_status:
+    description: 'Status of the merge operation'
+  environment:
+    description: 'Target environment'
+  entity_name:
+    description: 'Entity name'
+  backstage_id:
+    description: 'Backstage ID'
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      shell: bash
+      run: |
+        pip install PyYAML
+    
+    - name: Run merge script
+      shell: bash
+      env:
+        INPUT_ENVIRONMENT: ${{ inputs.environment }}
+        INPUT_ENTITY_NAME: ${{ inputs.entity_name }}
+        INPUT_BACKSTAGE_ID: ${{ inputs.backstage_id }}
+        INPUT_MERGE_STRATEGY: ${{ inputs.merge_strategy }}
+      run: |
+        chmod +x ${{ github.action_path }}/action.sh
+        ${{ github.action_path }}/action.sh

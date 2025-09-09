@@ -1,0 +1,33 @@
+# Test fixture: Conflicting Backstage records
+# This simulates a scenario where Backstage tries to overwrite existing resources
+
+# Environment: test-env
+# Backstage ID: conflict-app-test-20250909130000
+
+# This conflicts with existing legacy_web_server (manual resource)
+legacy_web_server:
+  fqdn: "legacy.example.com"
+  ip_addr: "10.1.1.55"  # Different IP
+  view: "default"
+  ttl: 1800  # Different TTL
+  comment: "Backstage trying to manage legacy server | Backstage ID: conflict-app-test-20250909130000"
+  ea_tags:
+    Owner: "conflict-team"
+    CreatedBy: "backstage"
+    CreatedAt: "2025-09-09T13:00:00Z"
+    BackstageId: "conflict-app-test-20250909130000"
+    BackstageEntity: "conflict-app"
+
+# This conflicts with existing old_app_api (different Backstage entity)
+old_app_api:
+  fqdn: "api.old-app.example.com"
+  ip_addr: "10.1.1.105"  # Different IP
+  view: "default"
+  ttl: 1800
+  comment: "Trying to take over old app API | Backstage ID: conflict-app-test-20250909130000"
+  ea_tags:
+    Owner: "conflict-team"
+    CreatedBy: "backstage"
+    CreatedAt: "2025-09-09T13:00:00Z"
+    BackstageId: "conflict-app-test-20250909130000"
+    BackstageEntity: "conflict-app"

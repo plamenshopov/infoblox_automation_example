@@ -1,0 +1,38 @@
+# Development Environment Host Record Configurations
+# Add your host record definitions here (records with automatic IP allocation)
+
+dev_dynamic_host1:
+  fqdn: "host01.dev.internal.company.com"
+  network: "10.1.0.0/24"
+  allocate_ip: true
+  view: "default"
+  ttl: 3600
+  comment: "Development host with auto-allocated IP"
+  ea_tags:
+    Allocation_Type: "automatic"
+    Environment: "dev"
+    Owner: "DevOps Team"
+
+dev_dynamic_host2:
+  fqdn: "host02.dev.internal.company.com"
+  network: "10.1.1.0/24"
+  allocate_ip: true
+  view: "default"
+  ttl: 3600
+  comment: "Development host with auto-allocated IP in DMZ"
+  ea_tags:
+    Allocation_Type: "automatic"
+    Environment: "dev"
+    Owner: "Security Team"
+
+dev_static_host:
+  fqdn: "static01.dev.internal.company.com"
+  ip_addr: "10.1.0.100"
+  allocate_ip: false
+  view: "default"
+  ttl: 3600
+  comment: "Development host with static IP"
+  ea_tags:
+    Allocation_Type: "static"
+    Environment: "dev"
+    Owner: "DevOps Team"

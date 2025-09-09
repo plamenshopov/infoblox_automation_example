@@ -1,0 +1,107 @@
+name: Process Backstage DNS Records
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - '*-records.yaml'  # Backstage-generated files
+
+jobs:
+  process-backstage-records:
+    name: Process Backstage Generated Records
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.title, 'Add DNS record:')
+    
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          pip install PyYAML
+
+      - name: Extract metadata from Backstage files
+        id: extract
+        run: |
+          # Extract environment and entity info from generated files
+          ENVIRONMENT="dev"  # Default
+          ENTITY_NAME=""
+          BACKSTAGE_ID=""
+          
+          for file in *-records.yaml; do
+            if [[ -f "$file" ]]; then
+              # Extract from comments
+              if grep -q "# Environment:" "$file"; then
+                ENVIRONMENT=$(grep "# Environment:" "$file" | sed 's/# Environment: //')
+              fi
+              
+              if grep -q "# Backstage ID:" "$file"; then
+                BACKSTAGE_ID=$(grep "# Backstage ID:" "$file" | sed 's/# Backstage ID: //')
+                ENTITY_NAME=$(echo "$BACKSTAGE_ID" | cut -d'-' -f1)
+              fi
+              break
+            fi
+          done
+          
+          echo "EXTRACTED_ENVIRONMENT=$ENVIRONMENT" >> $GITHUB_ENV
+          echo "EXTRACTED_ENTITY=$ENTITY_NAME" >> $GITHUB_ENV
+          echo "EXTRACTED_BACKSTAGE_ID=$BACKSTAGE_ID" >> $GITHUB_ENV
+          
+          echo "Extracted: env=$ENVIRONMENT, entity=$ENTITY_NAME, id=$BACKSTAGE_ID"
+
+      - name: Process and merge records
+        id: merge
+        uses: ./.github/actions/merge-dns-config
+        with:
+          environment: ${{ env.EXTRACTED_ENVIRONMENT }}
+          entity_name: ${{ env.EXTRACTED_ENTITY }}
+          backstage_id: ${{ env.EXTRACTED_BACKSTAGE_ID }}
+          merge_strategy: 'backstage-wins'
+
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add environments/
+          git add -u  # Stage deletions of backstage files
+          
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Auto-merge Backstage DNS records into environment configs
+            
+            - Processed Backstage-generated record files
+            - Merged into appropriate environment directories
+            - Removed temporary files
+            
+            Co-authored-by: backstage-bot <backstage@company.com>"
+            git push
+          fi
+
+      - name: Add PR comment
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ✅ Backstage Records Processed
+              
+              The DNS records from this Backstage template have been automatically processed and merged into the appropriate environment configuration files.
+              
+              ### Changes Made:
+              - Merged records into environment-specific YAML files
+              - Removed temporary Backstage-generated files
+              - Ready for Terraform deployment
+              
+              The pull request is now ready for review and merge.`
+            });

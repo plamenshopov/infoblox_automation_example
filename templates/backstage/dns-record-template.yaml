@@ -1,0 +1,158 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: infoblox-dns-record
+  title: Create Infoblox DNS Record
+  description: Create a new DNS record in Infoblox IPAM
+  tags:
+    - infoblox
+    - dns
+    - networking
+    - automation
+spec:
+  owner: platform-team
+  type: service
+  parameters:
+    - title: DNS Record Information
+      required:
+        - recordName
+        - recordType
+        - environment
+        - entityName
+      properties:
+        entityName:
+          title: Entity Name
+          type: string
+          description: Unique identifier for this Backstage entity (e.g., my-app, web-service)
+          pattern: '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$'
+        recordName:
+          title: Record Name
+          type: string
+          description: The DNS record name (FQDN)
+          pattern: '^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*$'
+        recordType:
+          title: Record Type
+          type: string
+          description: Type of DNS record to create
+          enum:
+            - A
+            - CNAME
+            - HOST
+          enumNames:
+            - A Record
+            - CNAME Record
+            - Host Record (with IP allocation)
+        environment:
+          title: Environment
+          type: string
+          description: Target environment
+          enum:
+            - dev
+            - staging
+            - prod
+          enumNames:
+            - Development
+            - Staging
+            - Production
+        ipAddress:
+          title: IP Address
+          type: string
+          description: IP address for A records (leave empty for auto-allocation)
+          pattern: '^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
+          when:
+            properties:
+              recordType:
+                enum: [A, HOST]
+        canonical:
+          title: Canonical Name
+          type: string
+          description: Target FQDN for CNAME records
+          when:
+            properties:
+              recordType:
+                const: CNAME
+        network:
+          title: Network
+          type: string
+          description: Network CIDR for automatic IP allocation
+          pattern: '^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$'
+          when:
+            properties:
+              recordType:
+                const: HOST
+        ttl:
+          title: TTL (seconds)
+          type: integer
+          description: Time to live for the DNS record
+          default: 3600
+        comment:
+          title: Comment
+          type: string
+          description: Description of the DNS record
+        owner:
+          title: Owner
+          type: string
+          description: Team or person responsible for this record
+        tags:
+          title: Additional Tags
+          type: object
+          description: Additional extensible attributes
+          properties:
+            Department:
+              title: Department
+              type: string
+            Purpose:
+              title: Purpose
+              type: string
+            CostCenter:
+              title: Cost Center
+              type: string
+
+  steps:
+    - id: fetch-base
+      name: Fetch Base Template
+      action: fetch:template
+      input:
+        url: ./content
+        targetPath: environments/${{ parameters.environment }}
+        values:
+          entityName: ${{ parameters.entityName }}
+          backstageId: ${{ parameters.entityName }}-${{ parameters.environment }}-${{ "" | now | date('YYYYMMDDHHmmss') }}
+          recordName: ${{ parameters.recordName }}
+          recordType: ${{ parameters.recordType }}
+          environment: ${{ parameters.environment }}
+          ipAddress: ${{ parameters.ipAddress }}
+          canonical: ${{ parameters.canonical }}
+          network: ${{ parameters.network }}
+          ttl: ${{ parameters.ttl }}
+          comment: ${{ parameters.comment }}
+          owner: ${{ parameters.owner }}
+          tags: ${{ parameters.tags }}
+
+    - id: create-pr
+      name: Create Pull Request
+      action: publish:github:pull-request
+      input:
+        repoUrl: github.com?repo=infoblox-automation&owner=your-org
+        title: 'Add DNS record: ${{ parameters.recordName }} (${{ parameters.entityName }})'
+        branchName: 'add-dns-record-${{ parameters.entityName }}-${{ "" | now | date('YYYYMMDDHHmmss') }}'
+        description: |
+          ## DNS Record Creation Request
+          
+          **Entity:** ${{ parameters.entityName }}
+          **Backstage ID:** ${{ parameters.entityName }}-${{ parameters.environment }}-${{ "" | now | date('YYYYMMDDHHmmss') }}
+          **Record Name:** ${{ parameters.recordName }}
+          **Record Type:** ${{ parameters.recordType }}
+          **Environment:** ${{ parameters.environment }}
+          **Owner:** ${{ parameters.owner }}
+          
+          This pull request adds a new DNS record configuration with unique tracking identifier.
+          
+          Created via Backstage template.
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps['create-pr'].output.remoteUrl }}
+      - title: Pull Request
+        url: ${{ steps['create-pr'].output.pullRequestUrl }}

@@ -1,0 +1,479 @@
+name: Infoblox Terraform CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+    paths:
+      - 'environments/**'
+      - 'live/**'
+      - 'modules/**'
+      - '*.tf'
+      - '*.hcl'
+
+env:
+  TF_VERSION: 1.5.0
+  TERRAGRUNT_VERSION: 0.50.0
+  PYTHON_VERSION: 3.9
+  
+  # Azure Storage for Terraform state
+  ARM_USE_MSI: false
+  ARM_STORAGE_ACCOUNT: ${{ vars.AZURE_STORAGE_ACCOUNT }}
+  ARM_ACCESS_KEY: ${{ secrets.AZURE_STORAGE_KEY }}
+
+jobs:
+  detect-changes:
+    name: Detect Changed Environments
+    runs-on: ubuntu-latest
+    outputs:
+      changed-environments: ${{ steps.changes.outputs.environments }}
+      common-changed: ${{ steps.changes.outputs.common }}
+      deploy-all: ${{ steps.changes.outputs.deploy_all }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for change detection
+
+      - name: Detect changes
+        id: changes
+        run: |
+          echo "Detecting changes..."
+          
+          # Get list of changed files
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+          else
+            CHANGED_FILES=$(git diff --name-only HEAD~1)
+          fi
+          
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+          
+          # Check if common files changed (modules, root configs, etc.)
+          COMMON_CHANGED="false"
+          if echo "$CHANGED_FILES" | grep -E "(^modules/|^terragrunt\.hcl$|^.*\.tf$|^.*\.hcl$)" | grep -v "live/" | grep -v "environments/"; then
+            COMMON_CHANGED="true"
+            echo "Common files changed - will deploy all environments"
+          fi
+          
+          # Detect changed environments
+          CHANGED_ENVS=()
+          
+          # Check live/ directory (Terragrunt)
+          for env_dir in live/*/; do
+            if [ -d "$env_dir" ]; then
+              env_name=$(basename "$env_dir")
+              if echo "$CHANGED_FILES" | grep -q "live/$env_name/"; then
+                CHANGED_ENVS+=("$env_name")
+                echo "Environment $env_name changed (Terragrunt)"
+              fi
+            fi
+          done
+          
+          # Check environments/ directory (Standard Terraform)
+          for env_dir in environments/*/; do
+            if [ -d "$env_dir" ]; then
+              env_name=$(basename "$env_dir")
+              if echo "$CHANGED_FILES" | grep -q "environments/$env_name/"; then
+                CHANGED_ENVS+=("$env_name")
+                echo "Environment $env_name changed (Standard Terraform)"
+              fi
+            fi
+          done
+          
+          # Remove duplicates and create JSON array
+          UNIQUE_ENVS=($(printf '%s\n' "${CHANGED_ENVS[@]}" | sort -u))
+          ENVIRONMENTS_JSON=$(printf '%s\n' "${UNIQUE_ENVS[@]}" | jq -R . | jq -s .)
+          
+          # Determine if we should deploy all environments
+          DEPLOY_ALL="false"
+          if [ "$COMMON_CHANGED" = "true" ] || [ "${#UNIQUE_ENVS[@]}" -eq 0 ]; then
+            DEPLOY_ALL="true"
+            # If deploying all, include all available environments
+            ALL_ENVS=()
+            for env_dir in live/*/; do
+              if [ -d "$env_dir" ]; then
+                ALL_ENVS+=($(basename "$env_dir"))
+              fi
+            done
+            for env_dir in environments/*/; do
+              if [ -d "$env_dir" ]; then
+                ALL_ENVS+=($(basename "$env_dir"))
+              fi
+            done
+            UNIQUE_ALL_ENVS=($(printf '%s\n' "${ALL_ENVS[@]}" | sort -u))
+            ENVIRONMENTS_JSON=$(printf '%s\n' "${UNIQUE_ALL_ENVS[@]}" | jq -R . | jq -s .)
+          fi
+          
+          echo "environments=$ENVIRONMENTS_JSON" >> $GITHUB_OUTPUT
+          echo "common=$COMMON_CHANGED" >> $GITHUB_OUTPUT
+          echo "deploy_all=$DEPLOY_ALL" >> $GITHUB_OUTPUT
+          
+          echo "Final decision:"
+          echo "- Common changed: $COMMON_CHANGED"
+          echo "- Deploy all: $DEPLOY_ALL"
+          echo "- Environments to process: $ENVIRONMENTS_JSON"
+
+  validate:
+    name: Validate Configuration
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.changed-environments != '[]'
+    strategy:
+      matrix:
+        environment: ${{ fromJson(needs.detect-changes.outputs.changed-environments) }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Python dependencies
+        run: |
+          pip install PyYAML
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Setup Terragrunt
+        run: |
+          wget -O terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v${{ env.TERRAGRUNT_VERSION }}/terragrunt_linux_amd64
+          chmod +x terragrunt
+          sudo mv terragrunt /usr/local/bin/
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+
+      - name: Validate Configuration Files
+        run: |
+          chmod +x scripts/validate-config.sh
+          # Check if environment exists in live/ (Terragrunt) or environments/ (Standard)
+          if [ -d "live/${{ matrix.environment }}" ]; then
+            echo "Validating Terragrunt environment: ${{ matrix.environment }}"
+            cd live/${{ matrix.environment }}
+            terragrunt validate
+          elif [ -d "environments/${{ matrix.environment }}" ]; then
+            echo "Validating Standard Terraform environment: ${{ matrix.environment }}"
+            ./scripts/validate-config.sh ${{ matrix.environment }}
+            cd environments/${{ matrix.environment }}
+            terraform init -backend=false
+            terraform validate
+          else
+            echo "Environment ${{ matrix.environment }} not found in live/ or environments/"
+            exit 1
+          fi
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.changed-environments != '[]'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: .
+          framework: terraform
+          output_format: sarif
+          output_file_path: reports/results.sarif
+          
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: reports/results.sarif
+
+  plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    needs: [detect-changes, validate, security-scan]
+    if: github.event_name == 'pull_request' && needs.detect-changes.outputs.changed-environments != '[]'
+    strategy:
+      matrix:
+        environment: ${{ fromJson(needs.detect-changes.outputs.changed-environments) }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Setup Terragrunt
+        run: |
+          wget -O terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v${{ env.TERRAGRUNT_VERSION }}/terragrunt_linux_amd64
+          chmod +x terragrunt
+          sudo mv terragrunt /usr/local/bin/
+
+      - name: Configure Azure Storage
+        run: |
+          echo "Setting up Azure Storage backend..."
+          export ARM_STORAGE_ACCOUNT="${{ env.ARM_STORAGE_ACCOUNT }}"
+          export ARM_ACCESS_KEY="${{ env.ARM_ACCESS_KEY }}"
+
+      - name: Create terraform.tfvars
+        run: |
+          if [ -d "live/${{ matrix.environment }}" ]; then
+            # Terragrunt environment
+            cd live/${{ matrix.environment }}
+            # Terragrunt will handle variable injection via inputs
+            echo "Using Terragrunt for ${{ matrix.environment }}"
+          elif [ -d "environments/${{ matrix.environment }}" ]; then
+            # Standard Terraform environment
+            cd environments/${{ matrix.environment }}
+            cat > terraform.tfvars << EOF
+          infoblox_username   = "${{ secrets.INFOBLOX_USERNAME }}"
+          infoblox_password   = "${{ secrets.INFOBLOX_PASSWORD }}"
+          infoblox_server     = "${{ secrets.INFOBLOX_SERVER }}"
+          infoblox_ssl_verify = true
+          EOF
+          fi
+
+      - name: Terraform/Terragrunt Plan
+        run: |
+          if [ -d "live/${{ matrix.environment }}" ]; then
+            echo "Planning with Terragrunt for ${{ matrix.environment }}"
+            cd live/${{ matrix.environment }}
+            # Set Infoblox credentials as environment variables
+            export TF_VAR_infoblox_username="${{ secrets.INFOBLOX_USERNAME }}"
+            export TF_VAR_infoblox_password="${{ secrets.INFOBLOX_PASSWORD }}"
+            export TF_VAR_infoblox_server="${{ secrets.INFOBLOX_SERVER }}"
+            terragrunt plan -out=tfplan-${{ matrix.environment }}
+          elif [ -d "environments/${{ matrix.environment }}" ]; then
+            echo "Planning with Terraform for ${{ matrix.environment }}"
+            cd environments/${{ matrix.environment }}
+            terraform init
+            terraform plan -out=tfplan-${{ matrix.environment }}
+          fi
+
+      - name: Upload Plan
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfplan-${{ matrix.environment }}
+          path: |
+            live/${{ matrix.environment }}/tfplan-${{ matrix.environment }}
+            environments/${{ matrix.environment }}/tfplan-${{ matrix.environment }}
+
+      - name: Comment PR with Plan
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const { execSync } = require('child_process');
+            
+            try {
+              let planOutput;
+              const env = '${{ matrix.environment }}';
+              
+              // Check which directory structure is used
+              if (fs.existsSync(`live/${env}`)) {
+                planOutput = execSync(`cd live/${env} && terragrunt show -no-color tfplan-${env}`, { encoding: 'utf8', maxBuffer: 1024 * 1024 });
+              } else if (fs.existsSync(`environments/${env}`)) {
+                planOutput = execSync(`cd environments/${env} && terraform show -no-color tfplan-${env}`, { encoding: 'utf8', maxBuffer: 1024 * 1024 });
+              }
+              
+              const comment = `## Terraform Plan - ${{ matrix.environment }}
+              ${fs.existsSync(`live/${env}`) ? '(Terragrunt)' : '(Standard Terraform)'}
+              
+              <details>
+              <summary>Click to expand plan output</summary>
+              
+              \`\`\`
+              ${planOutput}
+              \`\`\`
+              
+              </details>`;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            } catch (error) {
+              console.error('Error generating plan comment:', error);
+            }
+
+  deploy-dev:
+    name: Deploy to Development
+    runs-on: ubuntu-latest
+    needs: [detect-changes, validate, security-scan]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push' && (contains(fromJson(needs.detect-changes.outputs.changed-environments), 'dev') || needs.detect-changes.outputs.deploy-all == 'true')
+    environment: development
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Setup Terragrunt
+        run: |
+          wget -O terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v${{ env.TERRAGRUNT_VERSION }}/terragrunt_linux_amd64
+          chmod +x terragrunt
+          sudo mv terragrunt /usr/local/bin/
+
+      - name: Deploy to Development
+        run: |
+          chmod +x scripts/terragrunt-deploy.sh
+          chmod +x scripts/deploy.sh
+          
+          # Set credentials as environment variables
+          export TF_VAR_infoblox_username="${{ secrets.INFOBLOX_USERNAME }}"
+          export TF_VAR_infoblox_password="${{ secrets.INFOBLOX_PASSWORD }}"
+          export TF_VAR_infoblox_server="${{ secrets.INFOBLOX_SERVER_DEV }}"
+          export ARM_STORAGE_ACCOUNT="${{ env.ARM_STORAGE_ACCOUNT }}"
+          export ARM_ACCESS_KEY="${{ env.ARM_ACCESS_KEY }}"
+          
+          # Use Terragrunt if available, otherwise standard Terraform
+          if [ -d "live/dev" ]; then
+            echo "Deploying with Terragrunt"
+            ./scripts/terragrunt-deploy.sh dev apply
+          elif [ -d "environments/dev" ]; then
+            echo "Deploying with Standard Terraform"
+            ./scripts/deploy.sh dev apply
+          fi
+
+      - name: Notify Teams
+        if: always()
+        uses: skitionek/notify-microsoft-teams@master
+        with:
+          webhook_url: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          title: "Infoblox Development Deployment"
+          summary: "Deployment Status: ${{ job.status }}"
+          text: "Environment: Development | Status: ${{ job.status }} | Branch: ${{ github.ref_name }}"
+          theme_color: ${{ job.status == 'success' && '00FF00' || 'FF0000' }}
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [detect-changes, validate, security-scan]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && (contains(fromJson(needs.detect-changes.outputs.changed-environments), 'staging') || needs.detect-changes.outputs.deploy-all == 'true')
+    environment: staging
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Setup Terragrunt
+        run: |
+          wget -O terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v${{ env.TERRAGRUNT_VERSION }}/terragrunt_linux_amd64
+          chmod +x terragrunt
+          sudo mv terragrunt /usr/local/bin/
+
+      - name: Deploy to Staging
+        run: |
+          chmod +x scripts/terragrunt-deploy.sh
+          chmod +x scripts/deploy.sh
+          
+          # Set credentials as environment variables
+          export TF_VAR_infoblox_username="${{ secrets.INFOBLOX_USERNAME }}"
+          export TF_VAR_infoblox_password="${{ secrets.INFOBLOX_PASSWORD }}"
+          export TF_VAR_infoblox_server="${{ secrets.INFOBLOX_SERVER_STAGING }}"
+          export ARM_STORAGE_ACCOUNT="${{ env.ARM_STORAGE_ACCOUNT }}"
+          export ARM_ACCESS_KEY="${{ env.ARM_ACCESS_KEY }}"
+          
+          # Use Terragrunt if available, otherwise standard Terraform
+          if [ -d "live/staging" ]; then
+            echo "Deploying with Terragrunt"
+            ./scripts/terragrunt-deploy.sh staging apply
+          elif [ -d "environments/staging" ]; then
+            echo "Deploying with Standard Terraform"
+            ./scripts/deploy.sh staging apply
+          fi
+
+      - name: Notify Teams
+        if: always()
+        uses: skitionek/notify-microsoft-teams@master
+        with:
+          webhook_url: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          title: "Infoblox Staging Deployment"
+          summary: "Deployment Status: ${{ job.status }}"
+          text: "Environment: Staging | Status: ${{ job.status }} | Branch: ${{ github.ref_name }}"
+          theme_color: ${{ job.status == 'success' && '00FF00' || 'FF0000' }}
+
+  deploy-prod:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [detect-changes, validate, security-scan]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && contains(github.event.head_commit.message, '[deploy-prod]') && (contains(fromJson(needs.detect-changes.outputs.changed-environments), 'prod') || needs.detect-changes.outputs.deploy-all == 'true')
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Setup Terragrunt
+        run: |
+          wget -O terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v${{ env.TERRAGRUNT_VERSION }}/terragrunt_linux_amd64
+          chmod +x terragrunt
+          sudo mv terragrunt /usr/local/bin/
+
+      - name: Deploy to Production
+        run: |
+          chmod +x scripts/terragrunt-deploy.sh
+          chmod +x scripts/deploy.sh
+          
+          # Set credentials as environment variables
+          export TF_VAR_infoblox_username="${{ secrets.INFOBLOX_USERNAME }}"
+          export TF_VAR_infoblox_password="${{ secrets.INFOBLOX_PASSWORD }}"
+          export TF_VAR_infoblox_server="${{ secrets.INFOBLOX_SERVER_PROD }}"
+          export ARM_STORAGE_ACCOUNT="${{ env.ARM_STORAGE_ACCOUNT }}"
+          export ARM_ACCESS_KEY="${{ env.ARM_ACCESS_KEY }}"
+          
+          # Use Terragrunt if available, otherwise standard Terraform
+          if [ -d "live/prod" ]; then
+            echo "Deploying with Terragrunt"
+            ./scripts/terragrunt-deploy.sh prod apply
+          elif [ -d "environments/prod" ]; then
+            echo "Deploying with Standard Terraform"
+            ./scripts/deploy.sh prod apply
+          fi
+
+      - name: Notify Teams
+        if: always()
+        uses: skitionek/notify-microsoft-teams@master
+        with:
+          webhook_url: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          title: "🚀 Infoblox Production Deployment"
+          summary: "Deployment Status: ${{ job.status }}"
+          text: "Environment: Production | Status: ${{ job.status }} | Branch: ${{ github.ref_name }} | Commit: ${{ github.sha }}"
+          theme_color: ${{ job.status == 'success' && '00FF00' || 'FF0000' }}
+
+  cleanup:
+    name: Cleanup
+    runs-on: ubuntu-latest
+    needs: [plan]
+    if: always()
+    
+    steps:
+      - name: Remove temporary files
+        run: |
+          echo "Cleanup completed"

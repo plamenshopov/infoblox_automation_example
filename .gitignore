@@ -1,0 +1,78 @@
+# Terraform files
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform/
+.terraform.lock.hcl
+tfplan-*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.backup
+*.bak
+
+# Log files
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Local configuration
+.env
+.env.local
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Documentation build
+site/
+
+# State backups
+backups/
+
+# Certificate files
+*.pem
+*.key
+*.crt
+*.csr
+
+# Ansible
+*.retry
+
+# Vagrant
+.vagrant/
+
+# Node modules (if using any Node tools)
+node_modules/
+npm-debug.log
+
+# Test results
+test-results/
+coverage/
