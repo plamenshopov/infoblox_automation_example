@@ -1,0 +1,261 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: infoblox-ip-reservation
+  title: Create Infoblox IP Address Reservation
+  description: Reserve IP addresses in Infoblox IPAM without creating DNS records
+  tags:
+    - infoblox
+    - ip-reservation
+    - networking
+    - automation
+    - ipam
+spec:
+  owner: platform-team
+  type: service
+  parameters:
+    - title: IP Reservation Information
+      required:
+        - reservationName
+        - reservationType
+        - environment
+        - entityName
+      properties:
+        entityName:
+          title: Entity Name
+          type: string
+          description: Unique identifier for this Backstage entity (e.g., printer-pool, iot-devices)
+          pattern: '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$'
+        reservationName:
+          title: Reservation Name
+          type: string
+          description: Descriptive name for this IP reservation
+          pattern: '^[a-zA-Z0-9]([a-zA-Z0-9-_]*[a-zA-Z0-9])?$'
+        reservationType:
+          title: Reservation Type
+          type: string
+          description: Type of IP reservation to create
+          enum:
+            - fixed_address
+            - ip_range
+            - next_available
+            - static_ip
+            - vip
+            - container_pool
+            - dhcp_reservation
+            - gateway_reservation
+          enumNames:
+            - Fixed Address (specific IP + MAC)
+            - IP Range (range of IPs)
+            - Next Available (auto-assign from network)
+            - Static IP (specific IP only)
+            - Virtual IP (load balancer/cluster)
+            - Container Pool (container networking)
+            - DHCP Reservation (DHCP with MAC)
+            - Gateway Reservation (network gateway)
+        environment:
+          title: Environment
+          type: string
+          description: Target environment
+          enum:
+            - dev
+            - staging
+            - prod
+          enumNames:
+            - Development
+            - Staging
+            - Production
+
+    - title: Network Configuration
+      required:
+        - network
+      properties:
+        network:
+          title: Network CIDR
+          type: string
+          description: Target network for IP reservation
+          pattern: '^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$'
+          default: '10.1.0.0/24'
+
+    - title: IP Address Details
+      properties:
+        ipAddress:
+          title: Specific IP Address
+          type: string
+          description: Specific IP address (required for fixed_address, static_ip, vip, gateway_reservation)
+          pattern: '^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
+          when:
+            properties:
+              reservationType:
+                enum: [fixed_address, static_ip, vip, gateway_reservation]
+        macAddress:
+          title: MAC Address
+          type: string
+          description: MAC address (required for fixed_address, dhcp_reservation)
+          pattern: '^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
+          when:
+            properties:
+              reservationType:
+                enum: [fixed_address, dhcp_reservation]
+        startIp:
+          title: Start IP Address
+          type: string
+          description: Starting IP address for range (required for ip_range)
+          pattern: '^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
+          when:
+            properties:
+              reservationType:
+                const: ip_range
+        endIp:
+          title: End IP Address
+          type: string
+          description: Ending IP address for range (required for ip_range)
+          pattern: '^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
+          when:
+            properties:
+              reservationType:
+                const: ip_range
+        poolSize:
+          title: Pool Size
+          type: integer
+          description: Number of IPs to allocate (for container_pool, next_available)
+          default: 1
+          minimum: 1
+          maximum: 255
+          when:
+            properties:
+              reservationType:
+                enum: [container_pool, next_available]
+
+    - title: Additional Configuration
+      properties:
+        comment:
+          title: Comment
+          type: string
+          description: Description of the IP reservation purpose
+          default: 'Created via Backstage template'
+        owner:
+          title: Owner
+          type: string
+          description: Team or person responsible for this reservation
+          default: ${{ user.entity.metadata.name }}
+        disableDiscovery:
+          title: Disable Discovery
+          type: boolean
+          description: Disable network discovery for this reservation
+          default: false
+        usageType:
+          title: Usage Type
+          type: string
+          description: How this IP will be used
+          enum:
+            - DNS
+            - DHCP
+            - UNSPECIFIED
+          default: UNSPECIFIED
+        tags:
+          title: Additional Tags
+          type: object
+          description: Additional extensible attributes
+          properties:
+            Department:
+              title: Department
+              type: string
+            Purpose:
+              title: Purpose
+              type: string
+            CostCenter:
+              title: Cost Center
+              type: string
+            DeviceType:
+              title: Device Type
+              type: string
+            Location:
+              title: Location
+              type: string
+
+  steps:
+    - id: generate-unique-id
+      name: Generate Unique Reservation ID
+      action: debug:log
+      input:
+        message: "Generating unique reservation ID for ${{ parameters.entityName }}"
+
+    - id: fetch-base
+      name: Fetch Base Template
+      action: fetch:template
+      input:
+        url: ./content
+        targetPath: environments/${{ parameters.environment }}/configs
+        values:
+          entityName: ${{ parameters.entityName }}
+          backstageId: ${{ parameters.entityName }}-${{ parameters.environment }}-${{ "" | now | date('YYYYMMDDHHmmss') }}
+          reservationId: ip-res-${{ "" | now | date('YYYYMMDDHHmmss') }}-${{ parameters.entityName }}
+          reservationName: ${{ parameters.reservationName }}
+          reservationType: ${{ parameters.reservationType }}
+          environment: ${{ parameters.environment }}
+          network: ${{ parameters.network }}
+          ipAddress: ${{ parameters.ipAddress }}
+          macAddress: ${{ parameters.macAddress }}
+          startIp: ${{ parameters.startIp }}
+          endIp: ${{ parameters.endIp }}
+          poolSize: ${{ parameters.poolSize }}
+          comment: ${{ parameters.comment }}
+          owner: ${{ parameters.owner }}
+          disableDiscovery: ${{ parameters.disableDiscovery }}
+          usageType: ${{ parameters.usageType }}
+          tags: ${{ parameters.tags }}
+          createdAt: ${{ "" | now }}
+          createdBy: ${{ user.entity.metadata.name }}
+
+    - id: validate-configuration
+      name: Validate IP Reservation Configuration
+      action: debug:log
+      input:
+        message: |
+          Validating IP reservation configuration:
+          - Reservation ID: ip-res-${{ "" | now | date('YYYYMMDDHHmmss') }}-${{ parameters.entityName }}
+          - Type: ${{ parameters.reservationType }}
+          - Network: ${{ parameters.network }}
+          - Environment: ${{ parameters.environment }}
+
+    - id: create-pr
+      name: Create Pull Request
+      action: publish:github:pull-request
+      input:
+        repoUrl: github.com?repo=infoblox-automation&owner=your-org
+        title: Add IP reservation ${{ parameters.reservationName }} for ${{ parameters.entityName }}
+        branchName: add-ip-reservation-${{ parameters.entityName }}-${{ "" | now | date('YYYYMMDDHHmmss') }}
+        description: |
+          ## IP Address Reservation Request
+          
+          **Entity:** ${{ parameters.entityName }}
+          **Reservation ID:** ip-res-${{ "" | now | date('YYYYMMDDHHmmss') }}-${{ parameters.entityName }}
+          **Backstage ID:** ${{ parameters.entityName }}-${{ parameters.environment }}-${{ "" | now | date('YYYYMMDDHHmmss') }}
+          **Reservation Name:** ${{ parameters.reservationName }}
+          **Reservation Type:** ${{ parameters.reservationType }}
+          **Environment:** ${{ parameters.environment }}
+          **Network:** ${{ parameters.network }}
+          **Owner:** ${{ parameters.owner }}
+          
+          ### Configuration Details:
+          - **Usage Type:** ${{ parameters.usageType }}
+          - **Discovery:** ${{ parameters.disableDiscovery and 'Disabled' or 'Enabled' }}
+          
+          This pull request adds a new IP address reservation configuration with unique tracking identifier.
+          
+          **File Path:** `live/${{ parameters.environment }}/configs/ip-reservations.yaml`
+          
+          Created via Backstage template by ${{ user.entity.metadata.name }}.
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps['create-pr'].output.remoteUrl }}
+      - title: Pull Request
+        url: ${{ steps['create-pr'].output.pullRequestUrl }}
+    text:
+      - title: Reservation ID
+        content: ip-res-${{ "" | now | date('YYYYMMDDHHmmss') }}-${{ parameters.entityName }}
+      - title: Configuration File
+        content: live/${{ parameters.environment }}/configs/ip-reservations.yaml

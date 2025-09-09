@@ -1,0 +1,85 @@
+# Generated IP Reservation Configuration
+# Reservation: ${{ values.reservationName }}
+# Type: ${{ values.reservationType }}
+# Environment: ${{ values.environment }}
+# Generated: ${{ values.createdAt }}
+# Reservation ID: ${{ values.reservationId }}
+# Backstage ID: ${{ values.backstageId }}
+
+# Add this entry to your ip-reservations.yaml file
+ip_reservations:
+  - id: "${{ values.reservationId }}"
+    name: "${{ values.reservationName }}"
+    type: "${{ values.reservationType }}"
+    network: "${{ values.network }}"
+{%- if values.reservationType == "fixed_address" %}
+    ip_address: "${{ values.ipAddress }}"
+    mac_address: "${{ values.macAddress }}"
+{%- elif values.reservationType == "ip_range" %}
+    start_ip: "${{ values.startIp }}"
+    end_ip: "${{ values.endIp }}"
+{%- elif values.reservationType == "next_available" %}
+    pool_size: {{ values.poolSize }}
+{%- elif values.reservationType == "static_ip" %}
+    ip_address: "${{ values.ipAddress }}"
+{%- elif values.reservationType == "vip" %}
+    ip_address: "${{ values.ipAddress }}"
+    vip_type: "load_balancer"
+{%- elif values.reservationType == "container_pool" %}
+    pool_size: {{ values.poolSize }}
+    container_network: true
+{%- elif values.reservationType == "dhcp_reservation" %}
+    mac_address: "${{ values.macAddress }}"
+    dhcp_enabled: true
+{%- elif values.reservationType == "gateway_reservation" %}
+    ip_address: "${{ values.ipAddress }}"
+    is_gateway: true
+{%- endif %}
+    comment: "${{ values.comment }} | Reservation ID: ${{ values.reservationId }}"
+    disable_discovery: {{ values.disableDiscovery }}
+    usage_type: "${{ values.usageType }}"
+    ea_tags:
+      ReservationId: "${{ values.reservationId }}"
+      BackstageId: "${{ values.backstageId }}"
+      BackstageEntity: "${{ values.entityName }}"
+      Owner: "${{ values.owner }}"
+      CreatedBy: "${{ values.createdBy }}"
+      CreatedAt: "${{ values.createdAt }}"
+      ReservationType: "${{ values.reservationType }}"
+      Environment: "${{ values.environment }}"
+{%- if values.tags.Department %}
+      Department: "${{ values.tags.Department }}"
+{%- endif %}
+{%- if values.tags.Purpose %}
+      Purpose: "${{ values.tags.Purpose }}"
+{%- endif %}
+{%- if values.tags.CostCenter %}
+      CostCenter: "${{ values.tags.CostCenter }}"
+{%- endif %}
+{%- if values.tags.DeviceType %}
+      DeviceType: "${{ values.tags.DeviceType }}"
+{%- endif %}
+{%- if values.tags.Location %}
+      Location: "${{ values.tags.Location }}"
+{%- endif %}
+
+---
+# Integration Notes:
+# 1. This reservation will be processed by Terragrunt during next deployment
+# 2. Unique Reservation ID: ${{ values.reservationId }}
+# 3. To track this reservation: grep "${{ values.reservationId }}" live/${{ values.environment }}/configs/ip-reservations.yaml
+# 4. Backstage entity: ${{ values.entityName }}
+#
+# Validation Commands:
+# - terragrunt validate (checks syntax)
+# - terragrunt plan (shows what will be created)
+# - make test (runs comprehensive tests)
+#
+# Files to update:
+# - live/${{ values.environment }}/configs/ip-reservations.yaml (add this configuration)
+# - Update any dependent host-records.yaml if needed
+#
+# Monitoring:
+# - Check Infoblox GUI for reservation status
+# - Monitor IP allocation via IPAM tools
+# - Verify no conflicts with existing reservations

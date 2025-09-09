@@ -226,6 +226,10 @@ test-comprehensive: ## Run comprehensive test suite
 	@echo "$(BLUE)Running comprehensive test suite...$(NC)"
 	@./test-comprehensive.sh
 
+test-backstage-ip: ## Test IP reservation Backstage template
+	@echo "$(BLUE)Testing IP reservation Backstage template...$(NC)"
+	@./tests/test-backstage-ip-reservations.sh
+
 test-makefile: ## Test Makefile targets (safe operations only)
 	@echo "$(BLUE)Testing Makefile functionality...$(NC)"
 	@make help >/dev/null && echo "$(GREEN)✓ Help target working$(NC)"

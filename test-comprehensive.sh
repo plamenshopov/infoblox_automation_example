@@ -302,6 +302,29 @@ test_consistency_checks() {
     done
 }
 
+test_backstage_templates() {
+    log_info "=== Testing Backstage Templates ==="
+    
+    # Test DNS record template
+    run_test "DNS record template exists" "test -f templates/backstage/dns-record-template.yaml"
+    run_test "DNS record template valid YAML" "python3 -c 'import yaml; yaml.safe_load(open(\"templates/backstage/dns-record-template.yaml\"))'"
+    
+    # Test IP reservation template
+    run_test "IP reservation template exists" "test -f templates/backstage/ip-reservation-template.yaml"
+    run_test "IP reservation template valid YAML" "python3 -c 'import yaml; yaml.safe_load(open(\"templates/backstage/ip-reservation-template.yaml\"))'"
+    
+    # Test content templates
+    run_test "DNS content template exists" "test -f 'templates/backstage/content/\${{ values.recordType | lower }}-records.yaml'"
+    run_test "IP reservation content template exists" "test -f templates/backstage/content/ip-reservations.yaml"
+    
+    # Run comprehensive IP reservation template tests
+    if [[ -x "tests/test-backstage-ip-reservations.sh" ]]; then
+        run_test "IP reservation template comprehensive tests" "./tests/test-backstage-ip-reservations.sh"
+    else
+        log_warning "IP reservation template test script not executable"
+    fi
+}
+
 test_error_handling() {
     log_info "=== Testing Error Handling ==="
     
@@ -355,6 +378,7 @@ main() {
     test_python_scripts
     test_terragrunt_integration
     test_terraform_integration
+    test_backstage_templates
     test_consistency_checks
     test_error_handling
     

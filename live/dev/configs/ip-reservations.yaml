@@ -1,0 +1,116 @@
+# Development Environment IP Reservations
+# This file manages static IP address reservations without DNS records
+
+# Method 1: Fixed Address (IP Reservation for specific MAC address)
+# Use this for devices that need static IP but you know their MAC address
+dev_server_01_reservation:
+  network_view: "default"
+  ip_address: "10.1.0.10"
+  mac_address: "aa:bb:cc:dd:ee:01"
+  comment: "Reserved IP for dev-server-01"
+  ea_tags:
+    Device_Type: "server"
+    Environment: "dev"
+    Owner: "DevOps Team"
+    Purpose: "web_server"
+
+dev_printer_reservation:
+  network_view: "default"
+  ip_address: "10.1.0.50"
+  mac_address: "aa:bb:cc:dd:ee:02"
+  comment: "Reserved IP for network printer"
+  ea_tags:
+    Device_Type: "printer"
+    Environment: "dev"
+    Owner: "Office Admin"
+    Purpose: "printing"
+
+# Method 2: IP Range Reservations (reserve a block of IPs)
+# Use this to reserve a range of IPs for a specific purpose
+dev_dhcp_pool_exclusion:
+  network_view: "default"
+  network: "10.1.0.0/24"
+  start_ip: "10.1.0.100"
+  end_ip: "10.1.0.150"
+  comment: "Reserved IP range for manual server allocation"
+  reservation_type: "static_pool"
+  ea_tags:
+    Pool_Type: "static_allocation"
+    Environment: "dev"
+    Purpose: "server_pool"
+
+# Method 3: Next Available IP Reservation
+# Use this when you need to reserve an IP but don't care which specific one
+dev_next_available_reservation:
+  network_view: "default"
+  network: "10.1.0.0/24"
+  allocate_method: "next_available"
+  comment: "Reserve next available IP in dev network"
+  ea_tags:
+    Allocation_Type: "dynamic_reservation"
+    Environment: "dev"
+    Purpose: "future_server"
+
+# Method 4: Specific IP Reservation (without MAC address)
+# Use this to reserve a specific IP for future use
+dev_future_database_server:
+  network_view: "default"
+  ip_address: "10.1.0.200"
+  comment: "Reserved for future database server"
+  reservation_type: "static_ip"
+  ea_tags:
+    Device_Type: "database_server"
+    Environment: "dev"
+    Status: "planned"
+    Owner: "Database Team"
+
+# Method 5: Load Balancer VIP Reservations
+dev_load_balancer_vip:
+  network_view: "default"
+  ip_address: "10.1.0.250"
+  comment: "VIP for load balancer"
+  reservation_type: "vip"
+  ea_tags:
+    Device_Type: "load_balancer"
+    Environment: "dev"
+    Purpose: "high_availability"
+    Owner: "Infrastructure Team"
+
+# Method 6: Container/Pod IP Pool Reservations
+dev_kubernetes_pod_pool:
+  network_view: "default"
+  network: "10.1.1.0/24"
+  start_ip: "10.1.1.10"
+  end_ip: "10.1.1.100"
+  comment: "IP pool reserved for Kubernetes pods"
+  reservation_type: "container_pool"
+  ea_tags:
+    Platform: "kubernetes"
+    Environment: "dev"
+    Purpose: "container_networking"
+    Owner: "Platform Team"
+
+# Method 7: DHCP Reservation (known device, want consistent IP)
+dev_known_laptop:
+  network_view: "default"
+  ip_address: "10.1.0.75"
+  mac_address: "aa:bb:cc:dd:ee:03"
+  dhcp_reservation: true
+  comment: "DHCP reservation for developer laptop"
+  ea_tags:
+    Device_Type: "laptop"
+    Environment: "dev"
+    User: "john.doe"
+    Department: "Engineering"
+
+# Method 8: Network Gateway Reservations
+dev_network_gateway:
+  network_view: "default"
+  ip_address: "10.1.0.1"
+  comment: "Network gateway IP"
+  reservation_type: "gateway"
+  ea_tags:
+    Device_Type: "gateway"
+    Environment: "dev"
+    Purpose: "routing"
+    Criticality: "high"

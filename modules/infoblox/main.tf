@@ -6,11 +6,12 @@ locals {
   config_path = var.config_files_path
   
   # Load all configuration files
-  networks_raw      = fileexists("${local.config_path}/networks.yaml") ? yamldecode(file("${local.config_path}/networks.yaml")) : {}
-  dns_zones_raw     = fileexists("${local.config_path}/dns-zones.yaml") ? yamldecode(file("${local.config_path}/dns-zones.yaml")) : {}
-  a_records_raw     = fileexists("${local.config_path}/a-records.yaml") ? yamldecode(file("${local.config_path}/a-records.yaml")) : {}
-  cname_records_raw = fileexists("${local.config_path}/cname-records.yaml") ? yamldecode(file("${local.config_path}/cname-records.yaml")) : {}
-  host_records_raw  = fileexists("${local.config_path}/host-records.yaml") ? yamldecode(file("${local.config_path}/host-records.yaml")) : {}
+  networks_raw       = fileexists("${local.config_path}/networks.yaml") ? yamldecode(file("${local.config_path}/networks.yaml")) : {}
+  dns_zones_raw      = fileexists("${local.config_path}/dns-zones.yaml") ? yamldecode(file("${local.config_path}/dns-zones.yaml")) : {}
+  a_records_raw      = fileexists("${local.config_path}/a-records.yaml") ? yamldecode(file("${local.config_path}/a-records.yaml")) : {}
+  cname_records_raw  = fileexists("${local.config_path}/cname-records.yaml") ? yamldecode(file("${local.config_path}/cname-records.yaml")) : {}
+  host_records_raw   = fileexists("${local.config_path}/host-records.yaml") ? yamldecode(file("${local.config_path}/host-records.yaml")) : {}
+  ip_reservations_raw = fileexists("${local.config_path}/ip-reservations.yaml") ? yamldecode(file("${local.config_path}/ip-reservations.yaml")) : {}
   
   # Process configurations with defaults
   networks = {
@@ -65,6 +66,23 @@ locals {
       ea_tags     = merge(var.default_tags, try(v.ea_tags, {}))
     }
   }
+  
+  # Process IP reservations
+  ip_reservations = {
+    for k, v in local.ip_reservations_raw : k => {
+      network_view     = try(v.network_view, "default")
+      ip_address       = try(v.ip_address, null)
+      mac_address      = try(v.mac_address, null)
+      network          = try(v.network, null)
+      start_ip         = try(v.start_ip, null)
+      end_ip           = try(v.end_ip, null)
+      allocate_method  = try(v.allocate_method, null)
+      reservation_type = try(v.reservation_type, "fixed_address")
+      dhcp_reservation = try(v.dhcp_reservation, false)
+      comment          = try(v.comment, "")
+      ea_tags          = merge(var.default_tags, try(v.ea_tags, {}))
+    }
+  }
 }
 
 # Use the existing IPAM module
@@ -114,3 +132,25 @@ resource "infoblox_a_record" "host_records" {
 
   depends_on = [module.ipam]
 }
+
+# IP Reservations Support
+# Note: The exact Infoblox provider resource types depend on your provider version
+# Common resource types include:
+# - infoblox_ip_allocation (for next available IP)
+# - infoblox_ip_association (for fixed IP assignments)
+# - infoblox_network_view (for network view management)
+# - infoblox_ptr_record (for reverse DNS)
+
+# Uncomment and adjust based on your Infoblox provider version:
+#
+# resource "infoblox_ip_allocation" "reservations" {
+#   for_each = {
+#     for k, v in local.ip_reservations : k => v
+#     if v.allocate_method == "next_available"
+#   }
+#   
+#   network_view = each.value.network_view
+#   cidr         = each.value.network
+#   comment      = each.value.comment
+#   ext_attrs    = jsonencode(each.value.ea_tags)
+# }

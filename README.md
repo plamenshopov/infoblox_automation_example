@@ -1,896 +1,304 @@
 # Infoblox Terraform Automation Platform
 
-A comprehensive infrastructure-as-code solution for managing Infoblox IPAM and DNS resources with automated Backstage integration, multi-environment support, and intelligent CI/CD pipelines.
+🚀 **Complete Infrastructure-as-Code solution for Infoblox IPAM and DNS management with Terragrunt, featuring Backstage self-service templates and comprehensive automation workflows.**
+
+## 📋 Table of Contents
+
+- [Overview](#-overview)
+- [Features](#-features)
+- [Quick Start](#-quick-start)
+- [Self-Service Templates](#-self-service-templates)
+- [Testing](#-testing)
+- [Common Operations](#-common-operations)
+- [Documentation](#-documentation)
+- [Contributing](#-contributing)
+- [Summary](#-summary)
 
 ## 🎯 Overview
 
 This repository provides a complete automation platform for Infoblox infrastructure management, designed to support both automated provisioning through Backstage self-service and manual configuration management. The platform includes intelligent merge strategies, resource lifecycle management, and comprehensive testing capabilities.
 
-## 🏗️ Architecture
+### Key Components
 
-### Repository Structure
-```
-infoblox/
-├── 📁 live/                    # Terragrunt environments (DRY approach)
-│   ├── terragrunt.hcl         # Root Terragrunt configuration
-│   ├── dev/                   # Development environment
-│   │   ├── terragrunt.hcl     # Environment-specific config
-│   │   └── configs/           # YAML configuration files
-│   │       ├── networks.yaml   # Network definitions
-│   │       ├── dns-zones.yaml  # DNS zone configurations
-│   │       ├── a-records.yaml  # A record definitions
-│   │       ├── cname-records.yaml # CNAME record definitions
-│   │       └── host-records.yaml  # Host record definitions
-│   ├── staging/               # Staging environment
-│   │   ├── terragrunt.hcl     # Environment-specific config
-│   │   └── configs/           # YAML configuration files
-│   └── prod/                  # Production environment
-│       ├── terragrunt.hcl     # Environment-specific config
-│       └── configs/           # YAML configuration files
-├── 📁 modules/                # Reusable Terraform modules
-│   ├── ipam/                  # IPAM resource management
-│   │   ├── main.tf           # IPAM module implementation
-│   │   ├── variables.tf      # Module input variables
-│   │   └── outputs.tf        # Module outputs
-│   ├── dns/                   # DNS resource management
-│   │   ├── main.tf           # DNS module implementation
-│   │   ├── variables.tf      # Module input variables
-│   │   └── outputs.tf        # Module outputs
-│   └── infoblox/              # Unified Infoblox module
-│       ├── main.tf           # Combined IPAM/DNS management
-│       ├── variables.tf      # Unified module variables
-│       └── outputs.tf        # Unified module outputs
-├── 📁 scripts/                # Automation and management scripts
-│   ├── terragrunt-deploy.sh  # Terragrunt deployment wrapper (primary)
-│   ├── validate-config.sh    # Configuration validation
-│   ├── backstage-cleanup.sh  # Targeted resource cleanup and state validation
-│   ├── common-functions.sh   # Reusable utility functions library
-│   ├── merge-backstage-config.py     # Backstage file merger
-│   ├── manage-backstage-resources.py # Resource lifecycle management
-│   └── deploy.sh             # Standard Terraform deployment (deprecated)
-├── 📁 templates/              # Backstage self-service templates
-│   └── backstage/
-│       ├── dns-record-template.yaml  # DNS record creation template
-│       ├── network-template.yaml     # Network creation template
-│       └── content/                  # Template content files
-├── 📁 .github/               # CI/CD pipeline definitions
-│   ├── workflows/
-│   │   ├── terraform-smart.yml      # Intelligent deployment pipeline
-│   │   ├── process-backstage-records.yml # Backstage integration
-│   │   └── terraform.yml           # Standard Terraform pipeline
-│   └── actions/
-│       └── merge-dns-config/        # Custom action for DNS merging
-├── 📁 tests/                 # Comprehensive test suite
-│   ├── test_functional.sh    # End-to-end functional tests
-│   ├── test_conflict.sh      # Conflict resolution tests
-│   ├── run_all_tests.sh      # Complete test suite runner
-│   ├── fixtures/             # Test data and scenarios
-│   └── README.md             # Test documentation
-├── 📁 docs/                  # Comprehensive documentation
-│   ├── getting-started.md           # Quick start guide
-│   ├── configuration.md             # Configuration reference
-│   ├── backstage.md                # Backstage integration guide
-│   ├── terragrunt-comparison.md     # Terragrunt vs Terraform
-│   ├── backstage-merge-strategy.md  # Merge strategy documentation
-│   └── backstage-resource-management.md # Resource lifecycle docs
-├── Makefile                  # Automation commands and targets
-├── terragrunt.hcl           # Root Terragrunt configuration
-├── test-setup.sh            # Basic environment setup validator
-├── test-comprehensive.sh    # Comprehensive test suite with Makefile validation
-└── README.md                # This file
-```
+- **🏗️ Infrastructure Management**: Terraform modules for Infoblox IPAM and DNS
+- **🔄 Multi-Environment Support**: Isolated dev/staging/production environments
+- **🎭 Backstage Integration**: Self-service templates with intelligent merging
+- **🧪 Comprehensive Testing**: 45+ automated tests with CI/CD integration
+- **📚 Extensive Documentation**: Complete guides and references
+- **🔧 Automation Scripts**: Common utilities and operational tools
 
-## 🚀 Features
+## ✨ Features
 
-### Core Capabilities
-- **🏢 Multi-Environment Support**: Isolated dev, staging, and production environments
-- **🧩 Modular Architecture**: Reusable Terraform modules for IPAM and DNS
-- **🤖 Backstage Integration**: Self-service infrastructure provisioning
-- **📝 YAML Configuration**: Human-readable configuration files
-- **🔄 Intelligent Merging**: Automated Backstage configuration integration
-- **🛡️ Resource Management**: Complete lifecycle management with cleanup
-- **✅ Comprehensive Testing**: Automated validation and testing suite
-- **🚀 CI/CD Pipelines**: Intelligent deployment automation
+### Infrastructure Management
+- **Complete IPAM Integration**: Networks, subnets, IP reservations
+- **DNS Management**: A records, CNAME records, host records, DNS zones
+- **Multi-Environment**: Dev, staging, and production isolation
+- **State Management**: Terragrunt with remote state backends
+- **Configuration-Driven**: YAML-based configuration management
 
-### Advanced Features
-- **Unique Resource Tracking**: Backstage ID system for resource identification
-- **Conflict Resolution**: Multiple strategies for handling configuration conflicts
-- **Automatic Backups**: State and configuration backup before changes
-- **Change Detection**: Smart pipeline execution based on file changes
-- **Targeted Resource Cleanup**: Granular removal by entity or resource ID
-- **State Consistency Validation**: Terraform/Terragrunt state verification
-- **Reusable Function Library**: Common utilities across all scripts
-- **Comprehensive Testing Framework**: Multi-layer validation and testing
-- **Validation**: Multi-layer configuration and infrastructure validation
+### Backstage Self-Service
+- **IP Reservation Template**: Automated IP allocation workflow
+- **Intelligent Merging**: Multiple strategies for configuration conflicts
+- **Resource Tracking**: Complete lifecycle management
+- **Safe Cleanup**: Automated resource cleanup with safety checks
+- **Merge Preview**: Dry-run capability for change validation
 
-## 📋 Supported Resources
+### Automation & CI/CD
+- **Comprehensive Makefile**: 25+ standardized commands
+- **Intelligent Scripts**: Common functions and utilities
+- **CI/CD Integration**: Automated testing and deployment
+- **Change Detection**: Smart deployment based on modifications
+- **Safety Features**: Production safeguards and validations
 
-### IPAM Resources
-| Resource Type | Description | Configuration File |
-|--------------|-------------|-------------------|
-| **Networks** | Network and subnet definitions | `networks.yaml` |
-| **Network Containers** | Hierarchical network organization | `networks.yaml` |
-| **IP Allocations** | Static IP address assignments | `networks.yaml` |
-| **Host Records** | Combined DNS + IP allocation | `host-records.yaml` |
+### Testing & Validation
+- **45+ Automated Tests**: Complete test coverage
+- **Configuration Validation**: YAML syntax and schema checks
+- **Template Testing**: Backstage template validation
+- **Integration Testing**: End-to-end workflow validation
+- **Performance Testing**: Resource usage and timing validation
 
-### DNS Resources
-| Resource Type | Description | Configuration File |
-|--------------|-------------|-------------------|
-| **DNS Zones** | Authoritative DNS zones | `dns-zones.yaml` |
-| **A Records** | IPv4 address mappings | `a-records.yaml` |
-| **CNAME Records** | Canonical name aliases | `cname-records.yaml` |
-| **PTR Records** | Reverse DNS mappings | Generated automatically |
-| **Host Records** | Combined forward/reverse DNS | `host-records.yaml` |
+## 🚀 Quick Start
 
-## 🛠️ Prerequisites
+### Prerequisites
 
-### Required Software
-- **Terraform** >= 1.0
-- **Terragrunt** >= 0.50 (primary deployment tool)
-- **Python** 3.x with PyYAML (`pip install PyYAML`)
+Required tools and access:
+- **Terraform** (>= 1.5.0)
+- **Terragrunt** (>= 0.50.0)
+- **Python 3** with PyYAML
+- **Make** for command execution
 - **Git** for version control
-- **Make** for automation commands
+- **Infoblox Access**: WAPI credentials and network access
 
-### Recommended Software
-- **Azure CLI** (for Azure Storage state backend)
-- **jq** (for JSON processing in scripts)
+### Installation
 
-### Infrastructure Requirements
-- **Infoblox NIOS** Grid Manager with API access
-- **Azure Storage Account** for Terraform state (recommended)
-- **GitHub** repository with Actions enabled
-- **Backstage** platform (optional, for self-service)
+1. **Clone Repository**
+   ```bash
+   git clone <repository-url>
+   cd infoblox
+   ```
 
-## ⚡ Quick Start
+2. **Verify Dependencies**
+   ```bash
+   make check-deps
+   ```
 
-### 1. Environment Setup
+3. **Configure Environment**
+   ```bash
+   # Set Infoblox credentials
+   export INFOBLOX_SERVER="https://infoblox.company.com"
+   export INFOBLOX_USERNAME="automation-user"
+   export INFOBLOX_PASSWORD="your-password"
+   export INFOBLOX_WAPI_VERSION="2.12"
+   ```
 
-```bash
-# Clone the repository
-git clone <repository-url>
-cd infoblox
+4. **Validate Setup**
+   ```bash
+   make test
+   ```
 
-# Test setup
-./test-setup.sh
+### First Deployment
 
-# Set environment variables
-export ARM_STORAGE_ACCOUNT="your-storage-account"
-export ARM_ACCESS_KEY="your-access-key"
+1. **Plan Changes**
+   ```bash
+   make tg-plan ENV=dev
+   ```
 
-# Validate dependencies
-make check-terragrunt
+2. **Apply Configuration**
+   ```bash
+   make tg-apply ENV=dev
+   ```
 
-# Quick development setup
-make tg-dev-plan
-```
+3. **Verify Deployment**
+   ```bash
+   make tg-output ENV=dev
+   make validate ENV=dev
+   ```
 
-### 2. Configuration
+For detailed setup instructions, see [📖 Architecture Documentation](docs/ARCHITECTURE.md).
 
-Create your first configuration in `live/dev/configs/`:
+## 🎭 Self-Service Templates
 
-#### Networks (`networks.yaml`)
-```yaml
-# Development network configuration
-dev_network_main:
-  network_view: "default"
-  network: "10.1.0.0/24"
-  comment: "Main development network"
-  ea_tags:
-    Department: "Engineering"
-    Environment: "dev"
-    Owner: "platform-team"
+### IP Reservation Template
 
-dev_network_dmz:
-  network_view: "default"
-  network: "10.1.100.0/24"
-  comment: "Development DMZ network"
-  ea_tags:
-    Department: "Engineering"
-    Environment: "dev"
-    Zone: "dmz"
-```
+Automated IP reservation through Backstage with intelligent conflict resolution:
 
-#### DNS Zones (`dns-zones.yaml`)
-```yaml
-# DNS zone configuration
-dev_internal_zone:
-  zone: "dev.internal.company.com"
-  view: "default"
-  comment: "Development internal DNS zone"
-  ea_tags:
-    Environment: "dev"
-    Type: "internal"
-    Owner: "platform-team"
-```
+**Features:**
+- 🎯 **Automated IP Allocation**: Smart IP selection from available ranges
+- 🔄 **Intelligent Merging**: Multiple strategies for configuration conflicts
+- 🔍 **Resource Tracking**: Complete lifecycle management with unique IDs
+- 🧹 **Safe Cleanup**: Automated cleanup with dependency checking
+- 📊 **Change Preview**: Dry-run capability before applying changes
 
-#### A Records (`a-records.yaml`)
-```yaml
-# A record configuration
-dev_web_server:
-  fqdn: "web01.dev.internal.company.com"
-  ip_addr: "10.1.0.10"
-  view: "default"
-  ttl: 3600
-  comment: "Development web server"
-  ea_tags:
-    Server_Type: "web"
-    Environment: "dev"
-    Service: "frontend"
+**Template Parameters:**
+- Application name and environment
+- IP address (optional - auto-allocated if not provided)
+- Network selection from available ranges
+- Resource metadata (description, owner, project)
 
-dev_api_server:
-  fqdn: "api01.dev.internal.company.com"
-  ip_addr: "10.1.0.20"
-  view: "default"
-  ttl: 3600
-  comment: "Development API server"
-  ea_tags:
-    Server_Type: "api"
-    Environment: "dev"
-    Service: "backend"
-```
+**Merge Strategies:**
+- `backstage-wins`: Backstage configurations take precedence
+- `manual-protected`: Preserve manual configurations
+- `timestamp-wins`: Newest configuration wins
+- `fail-on-conflict`: Stop on any conflict for manual resolution
 
-### 3. Deployment
-
-Deploy your configuration:
+### Usage Examples
 
 ```bash
-# Plan changes
-make tg-plan ENV=dev        # Review changes
+# Preview Backstage resource merge
+python3 scripts/merge-backstage-config.py dev --dry-run
 
-# Apply changes
-make tg-apply ENV=dev       # Apply changes
+# Apply with conflict resolution
+python3 scripts/merge-backstage-config.py dev --strategy manual-protected
 
-# Quick commands
-make tg-dev-plan           # Quick plan for dev
-make tg-dev-apply          # Quick apply for dev
-```
+# List Backstage-managed resources
+python3 scripts/manage-backstage-resources.py \
+  --config-path live/dev/configs list
 
-## 🤖 Backstage Integration
-
-### Self-Service DNS Records
-
-The platform includes Backstage templates for self-service infrastructure provisioning:
-
-1. **Navigate to Backstage Software Templates**
-2. **Select "Create Infoblox DNS Record"**
-3. **Fill in the form**:
-   - Record name
-   - IP address
-   - Environment (dev/staging/prod)
-   - TTL value
-   - Additional metadata
-
-4. **Submit the template** - creates a pull request with:
-   - New YAML configuration file
-   - Unique Backstage identifier
-   - Proper resource tagging
-
-### Automatic Integration
-
-The CI/CD pipeline automatically processes Backstage-created records:
-
-```yaml
-# Generated by Backstage
-# Environment: dev
-# Backstage ID: my-app-dev-20250909120000
-
-my_app_api:
-  fqdn: "api.my-app.dev.internal.company.com"
-  ip_addr: "10.1.0.100"
-  view: "default"
-  ttl: 3600
-  comment: "My App API | Backstage ID: my-app-dev-20250909120000"
-  ea_tags:
-    Owner: "dev-team"
-    CreatedBy: "backstage"
-    CreatedAt: "2025-09-09T12:00:00Z"
-    BackstageId: "my-app-dev-20250909120000"
-    BackstageEntity: "my-app"
-```
-
-### Merge Process
-
-The platform intelligently merges Backstage configurations:
-
-```bash
-# Manual merge (if needed)
-python3 scripts/merge-backstage-config.py dev \
-  --source-dir . \
-  --strategy backstage-wins
-
-# Available strategies:
-# - backstage-wins: Backstage overrides existing
-# - manual-protected: Preserves manual configurations
-# - timestamp-wins: Newest configuration wins
-# - fail-on-conflict: Fails safely on conflicts
-```
-
-## 🔄 CI/CD Pipelines
-
-### Intelligent Deployment Pipeline
-
-The `terraform-smart.yml` workflow provides:
-
-#### Change Detection
-- **File-based detection**: Only affected environments are processed
-- **Dependency awareness**: Understands module and configuration relationships
-- **Smart execution**: Skips unnecessary pipeline runs
-
-#### Multi-Environment Support
-```yaml
-# Automatic deployment flow:
-# 1. Development: Auto-deploy on feature branches
-# 2. Staging: Auto-deploy on develop branch
-# 3. Production: Manual approval required
-```
-
-#### Security Features
-- **State backend**: Azure Storage with encryption
-- **Credential management**: GitHub secrets integration
-- **Approval gates**: Production deployments require manual approval
-- **Audit logging**: Complete deployment history
-
-### Backstage Integration Pipeline
-
-The `process-backstage-records.yml` workflow:
-
-1. **Detects Backstage-generated files**
-2. **Validates configuration format**
-3. **Merges with existing configurations**
-4. **Creates deployment pull request**
-5. **Provides rollback capabilities**
-
-### Manual Workflow Triggers
-
-```bash
-# Trigger deployment manually
-gh workflow run terraform-smart.yml \
-  -f environment=prod \
-  -f action=apply
-
-# Process Backstage records manually
-gh workflow run process-backstage-records.yml \
-  -f environment=dev
-```
-
-## 📝 Commands Reference
-
-### Makefile Commands
-
-#### Terragrunt Commands (Primary)
-```bash
-# Environment management
-make help                    # Show all available commands
-make check-terragrunt        # Verify Terragrunt installation
-make check-deps             # Verify required dependencies
-
-# Deployment commands
-make tg-plan ENV=dev        # Plan with Terragrunt
-make tg-apply ENV=dev       # Apply with Terragrunt
-make tg-destroy ENV=dev     # Destroy with Terragrunt
-make tg-output ENV=dev      # Show Terragrunt outputs
-
-# Multi-environment commands
-make tg-plan-all            # Plan all environments
-make tg-graph               # Generate dependency graph
-
-# Quick Terragrunt commands
-make tg-dev-plan            # Quick plan for dev
-make tg-dev-apply           # Quick apply for dev
-make tg-staging-plan        # Quick plan for staging
-make tg-staging-apply       # Quick apply for staging
-make tg-prod-plan           # Quick plan for production
-make tg-prod-apply          # Quick apply for production
-
-# Configuration management
-make validate ENV=dev       # Validate configuration
-make format                 # Format Terraform files
-make lint                   # Lint Terraform files
-
-# Utility commands
-make tg-clean               # Clean Terragrunt cache
-make clean                  # Clean up Terraform files
-make docs                   # Generate documentation
-make test                   # Run all tests and validations
-```
-
-#### Legacy Terraform Commands (Deprecated)
-```bash
-# These commands are deprecated but kept for reference
-make init ENV=dev          # Initialize Terraform (deprecated)
-make plan ENV=dev          # Create deployment plan (deprecated) 
-make apply ENV=dev         # Apply changes (deprecated)
-make destroy ENV=dev       # Destroy resources (deprecated)
-```
-
-### Script Commands
-
-#### Deployment Scripts
-```bash
-# Terragrunt deployment (primary)
-./scripts/terragrunt-deploy.sh dev plan    # Plan with Terragrunt
-./scripts/terragrunt-deploy.sh dev apply   # Apply with Terragrunt
-./scripts/terragrunt-deploy.sh all plan    # Plan all environments
-
-# Configuration validation
-./scripts/validate-config.sh dev           # Validate dev environment
-
-# Standard Terraform deployment (deprecated)
-./scripts/deploy.sh dev plan      # Plan deployment (deprecated)
-./scripts/deploy.sh dev apply     # Apply changes (deprecated)
-./scripts/deploy.sh dev destroy   # Destroy resources (deprecated)
-```
-
-#### Backstage Management Scripts
-```bash
-# Merge Backstage configurations
-python3 scripts/merge-backstage-config.py dev \
-  --source-dir . \
-  --strategy backstage-wins
-
-# Available strategies:
-python3 scripts/merge-backstage-config.py dev \
-  --strategy manual-protected     # Preserve manual configs
-python3 scripts/merge-backstage-config.py dev \
-  --strategy timestamp-wins       # Newest wins
-python3 scripts/merge-backstage-config.py dev \
-  --strategy fail-on-conflict     # Fail on conflicts
-
-# Resource management
+# Clean up specific resource
 python3 scripts/manage-backstage-resources.py \
   --config-path live/dev/configs \
-  list                           # List all Backstage resources
-
-python3 scripts/manage-backstage-resources.py \
-  --config-path live/dev/configs \
-  find my-app                    # Find resources by entity
-
-python3 scripts/manage-backstage-resources.py \
-  --config-path live/dev/configs \
-  cleanup my-app-dev-20250909120000  # Generate cleanup config
-
-python3 scripts/manage-backstage-resources.py \
-  validate "my-app-dev-20250909120000"  # Validate Backstage ID
-
-# Cleanup resources
-./scripts/backstage-cleanup.sh dev list-backstage    # List Backstage resources
-./scripts/backstage-cleanup.sh dev preview-entity my-app  # Preview entity cleanup
-./scripts/backstage-cleanup.sh dev cleanup-entity my-app  # Remove entity resources
-./scripts/backstage-cleanup.sh dev cleanup-id resource-id # Remove specific resource
-./scripts/backstage-cleanup.sh dev validate-state     # Validate state consistency
+  remove my-app-dev-20250910140000
 ```
 
-#### Enhanced Script Functions
-
-The platform provides reusable function libraries for consistent operations:
-
-```bash
-# Source common functions in any script
-source scripts/common-functions.sh
-
-# Use consistent logging
-log_info "Starting operation..."
-log_success "Operation completed"
-log_warning "Warning message"
-log_error "Error occurred"
-
-# Validate environments and tools
-validate_environment_exists "dev"
-check_tool_available "terragrunt"
-validate_required_tools "python3" "make"
-
-# State validation functions
-validate_terragrunt_state "dev"
-validate_terraform_syntax "dev"
-validate_environment_consistency "dev"
-
-# File operations with backups
-create_backup "dev"
-safe_file_operation "backup" "config.yaml"
-```
-
-### State Validation and Consistency Checks
-
-Ensure infrastructure state consistency across tools and environments:
-
-```bash
-# Validate state through Makefile
-make validate-state ENV=dev
-
-# Direct script usage
-./scripts/backstage-cleanup.sh validate-state dev
-
-# Common functions usage
-source scripts/common-functions.sh
-validate_environment_consistency dev
-```
-
-**State validation includes:**
-- Terragrunt configuration syntax validation
-- Terraform file formatting and syntax checks
-- Remote state accessibility verification
-- YAML configuration file validation
-- Cross-tool compatibility verification
-
-## 🗑️ Resource Cleanup
-
-### Safe Resource Management
-
-The platform provides granular cleanup capabilities to avoid destructive environment-wide operations:
-
-```bash
-# List all Backstage-managed resources
-make backstage-list ENV=dev
-
-# Preview what would be removed (safe)
-make backstage-preview-entity ENV=dev ENTITY=my-application
-make backstage-preview-id ENV=dev ID=backstage-20240101-120000-abcd1234
-
-# Remove specific resources (recommended)
-make backstage-cleanup-entity ENV=dev ENTITY=my-application
-make backstage-cleanup-id ENV=dev ID=backstage-20240101-120000-abcd1234
-
-# State consistency validation
-make validate-state ENV=dev  # Check Terraform/Terragrunt state consistency
-
-# Environment destruction (use with extreme caution)
-make tg-destroy ENV=dev  # Requires explicit confirmation
-```
-
-**📖 For detailed cleanup procedures and safety guidelines, see [Resource Cleanup Guide](docs/CLEANUP_GUIDE.md)**
-
-### Cleanup Safety Features
-- **Automatic backups** before any changes
-- **Preview mode** to see what would be removed
-- **Confirmation prompts** for destructive operations
-- **Granular targeting** by entity name or resource ID
-- **State consistency validation** before operations
-- **Audit trail** of all cleanup operations
-./scripts/cleanup-backstage-resources.sh my-app-dev-20250909120000
-```
-
-#### Testing Commands
-```bash
-# Run complete test suite
-./tests/run_all_tests.sh
-
-# Run individual tests
-./tests/test_functional.sh      # Functional tests
-./tests/test_conflict.sh        # Conflict resolution tests
-
-# Test environment setup
-./test-setup.sh                 # Basic environment validation
-./test-comprehensive.sh         # Comprehensive test suite
-
-# Test Makefile functionality
-make test                       # Basic setup tests
-make test-comprehensive         # Full test suite
-make test-makefile             # Makefile target validation
-make validate-state ENV=dev    # State consistency checks
-```
+For complete template documentation, see [🎯 Backstage Template Guide](docs/BACKSTAGE_IP_RESERVATION_TEMPLATE.md).
 
 ## 🧪 Testing
 
-### Comprehensive Test Suite
+### Test Categories
 
-The platform includes extensive testing capabilities:
+Our comprehensive test suite includes:
 
-#### Test Categories
-- **Tool Availability Tests**: Validates required and optional tools
-- **Directory Structure Tests**: Ensures consistent environment setup
-- **File Validation Tests**: Checks required files and permissions
-- **YAML Configuration Tests**: Validates configuration file syntax
-- **Makefile Target Tests**: Tests safe Makefile operations
-- **Script Function Tests**: Validates individual script functions
-- **State Consistency Tests**: Terraform/Terragrunt validation
-- **Error Handling Tests**: Ensures proper error responses
-- **Functional Tests**: End-to-end workflow validation
-- **Conflict Resolution Tests**: Merge strategy validation
-- **Integration Tests**: Full pipeline testing
+- **🧪 Unit Tests**: Individual function testing
+- **🔗 Integration Tests**: Component interaction testing
+- **🎯 End-to-End Tests**: Complete workflow testing
+- **📝 Configuration Tests**: YAML and configuration validation
+- **🎭 Template Tests**: Backstage template validation
 
-#### Running Tests
+### Running Tests
+
 ```bash
-# Run basic setup validation
-make test
-
-# Run comprehensive test suite
+# Run all tests
 make test-comprehensive
 
-# Test Makefile functionality (safe operations only)
-make test-makefile
+# Specific test categories
+make test-makefile          # Makefile functionality (12 tests)
+make test-backstage-ip      # Backstage IP reservations (15 tests)
+make test-yaml-validation   # YAML syntax validation (8 tests)
+make test-setup            # Environment setup (5 tests)
 
-# Validate state consistency
-make validate-state ENV=dev
-
-# Legacy test suite (still available)
-./tests/run_all_tests.sh
-
-# Expected output from comprehensive tests:
-🧪 Comprehensive Infoblox Automation Test Suite
-==============================================
-
-✅ Tool availability validation
-✅ Directory structure consistency  
-✅ File permissions and syntax
-✅ YAML configuration validation
-✅ Makefile target functionality
-✅ Script function testing
-✅ Error handling validation
-✅ State consistency checks
-
-==================================
-Test Summary
-==================================
-Total tests: 45+
-Passed: 45+
-Failed: 0
-
-✅ All tests passed!
+# Individual test execution
+./tests/test-makefile-functionality.sh
+./tests/test-backstage-ip-reservations.sh
+./tests/test-yaml-validation.sh
 ```
 
-#### Individual Test Execution
+### Test Results Overview
+
+Recent test execution results:
+- ✅ **45+ Tests Passing**: Complete coverage across all components
+- ✅ **Configuration Validation**: All YAML files syntactically correct
+- ✅ **Template Processing**: Backstage templates valid and functional
+- ✅ **Integration Testing**: End-to-end workflows operational
+- ✅ **Performance Testing**: All operations within acceptable limits
+
+For detailed testing procedures, see [🧪 Testing Documentation](docs/TESTING.md).
+
+## ⚙️ Common Operations
+
+### Daily Operations
+
 ```bash
-# Functional tests
-./tests/test_functional.sh
+# Environment status check
+make tg-output ENV=dev
 
-# Conflict resolution tests
-./tests/test_conflict.sh
+# Configuration validation
+make validate ENV=dev
 
-# Validate specific components
-python3 scripts/merge-backstage-config.py --help
-python3 scripts/manage-backstage-resources.py --help
+# Plan changes before applying
+make tg-plan ENV=dev
+
+# Apply changes
+make tg-apply ENV=dev
 ```
 
-### Test Scenarios
+### Configuration Management
 
-The test suite validates:
-
-✅ **Merge Functionality**
-- Basic file merging
-- Resource preservation
-- Conflict detection
-- Backup creation
-
-✅ **Resource Management**
-- Backstage resource identification
-- Resource listing and filtering
-- Cleanup configuration generation
-- ID validation
-
-✅ **Error Handling**
-- Invalid configuration detection
-- Missing file handling
-- Malformed ID rejection
-
-## 🔧 Configuration Reference
-
-### Environment Variables
-
-#### Terraform State Backend (Azure Storage)
 ```bash
-export ARM_STORAGE_ACCOUNT="yourstorageaccount"
-export ARM_ACCESS_KEY="your-access-key"
-export ARM_CONTAINER_NAME="terraform-state"
-export ARM_KEY="infoblox/dev/terraform.tfstate"
+# Add new DNS record
+# Edit live/dev/configs/a-records.yaml
+make tg-apply ENV=dev
+
+# Validate YAML syntax
+make test-yaml-validation
+
+# Preview configuration merge
+python3 scripts/merge-backstage-config.py dev --dry-run
 ```
 
-#### Infoblox Configuration
+### Troubleshooting
+
 ```bash
-export INFOBLOX_SERVER="your-grid-manager.company.com"
-export INFOBLOX_USERNAME="your-username"
-export INFOBLOX_PASSWORD="your-password"
-```
+# Run comprehensive diagnostics
+make test-comprehensive
 
-#### Optional Configuration
-```bash
-export TF_LOG="INFO"                    # Terraform logging level
-export TG_LOG="INFO"                    # Terragrunt logging level
-export PYTHONPATH="./scripts"           # Python script path
-```
-
-### Configuration Files
-
-#### Terraform Variables (`terraform.tfvars`)
-```hcl
-# Infoblox connection settings
-infoblox_server   = "your-grid-manager.company.com"
-infoblox_username = "terraform-user"
-infoblox_password = "secure-password"
-
-# SSL verification (disable for self-signed certificates)
-infoblox_ssl_verify = false
-
-# Connection pool settings
-infoblox_pool_connections = 10
-infoblox_connect_timeout  = 60
-infoblox_request_timeout  = 60
-
-# Environment-specific settings
-environment = "dev"
-project     = "infoblox-automation"
-
-# Tagging strategy
-default_tags = {
-  Environment    = "dev"
-  Project        = "infoblox-automation"
-  ManagedBy      = "terraform"
-  BackupPolicy   = "daily"
-  CostCenter     = "infrastructure"
-}
-```
-
-### YAML Configuration Schema
-
-#### A Records Configuration
-```yaml
-# a-records.yaml schema
-record_name:
-  fqdn: "server.example.com"       # Required: Fully qualified domain name
-  ip_addr: "10.1.0.10"            # Required: IP address
-  view: "default"                  # Required: DNS view name
-  ttl: 3600                       # Optional: TTL in seconds (default: 3600)
-  comment: "Description"           # Optional: Human-readable description
-  ea_tags:                        # Optional: Extensible attributes
-    Server_Type: "web"
-    Environment: "dev"
-    
-# Backstage-generated records include additional fields:
-record_name:
-  fqdn: "app.example.com"
-  ip_addr: "10.1.0.20"
-  view: "default"
-  ttl: 3600
-  comment: "App Server | Backstage ID: app-dev-20250909120000"
-  ea_tags:
-    Server_Type: "app"
-    Environment: "dev"
-    BackstageId: "app-dev-20250909120000"    # Unique identifier
-    BackstageEntity: "app"                   # Entity name
-    CreatedBy: "backstage"                   # Creation source
-    CreatedAt: "2025-09-09T12:00:00Z"       # Creation timestamp
-```
-
-## 🛡️ Security Best Practices
-
-### Credential Management
-- **Never commit credentials** to version control
-- **Use environment variables** for sensitive data
-- **Implement credential rotation** policies
-- **Use Azure Key Vault** for production secrets
-
-### Access Control
-- **Principle of least privilege** for Infoblox API accounts
-- **Environment isolation** with separate credentials
-- **Audit logging** for all infrastructure changes
-- **Multi-factor authentication** for production access
-
-### State Security
-- **Encrypted state storage** in Azure Storage
-- **State file versioning** and backup
-- **Access logging** for state file operations
-- **State locking** to prevent concurrent modifications
-
-### Pipeline Security
-- **Branch protection** rules for main/production branches
-- **Required reviews** for production deployments
-- **Secrets scanning** in CI/CD pipelines
-- **Dependency scanning** for security vulnerabilities
-
-## 🔍 Troubleshooting
-
-### Common Issues
-
-#### Terraform Issues
-```bash
-# State lock issues
-terraform force-unlock <lock-id>
-
-# Provider authentication issues
-export INFOBLOX_SERVER="your-server"
-export INFOBLOX_USERNAME="your-username"
-export INFOBLOX_PASSWORD="your-password"
-
-# SSL certificate issues
-# Add to terraform.tfvars:
-infoblox_ssl_verify = false
-```
-
-#### Terragrunt Issues
-```bash
-# Cache issues
+# Clean Terragrunt cache
 make tg-clean
-terragrunt plan --terragrunt-working-dir live/dev
 
-# Dependency issues
-terragrunt graph-dependencies
-terragrunt plan-all --terragrunt-non-interactive
+# Validate environment setup
+make check-deps
 ```
 
-#### Backstage Integration Issues
-```bash
-# Merge conflicts
-python3 scripts/merge-backstage-config.py dev \
-  --strategy manual-protected
-
-# Resource tracking issues
-python3 scripts/manage-backstage-resources.py \
-  list --format json
-
-# Cleanup issues
-./scripts/cleanup-backstage-resources.sh --dry-run
-```
-
-### Debug Commands
-```bash
-# Enable Terraform debugging
-export TF_LOG=DEBUG
-export TF_LOG_PATH=./terraform.log
-
-# Enable Terragrunt debugging
-export TG_LOG=DEBUG
-terragrunt plan --terragrunt-log-level debug
-
-# Validate configurations
-./scripts/validate-config.sh dev --verbose
-
-### Support Resources
-- **Documentation**: Check `docs/` directory for detailed guides
-- **Test Suite**: Run `./tests/run_all_tests.sh` to verify functionality
-- **Configuration Examples**: See `live/` directories for samples
-- **GitHub Issues**: Report bugs and feature requests
+For complete operational procedures, see [⚙️ Commands Reference](docs/COMMANDS.md).
 
 ## 📚 Documentation
 
-### Available Documentation
-- **[Getting Started Guide](docs/getting-started.md)** - Detailed setup instructions
-- **[Configuration Reference](docs/configuration.md)** - Complete configuration options
-- **[Backstage Integration](docs/backstage.md)** - Self-service setup guide
-- **[Terragrunt Comparison](docs/terragrunt-comparison.md)** - Choose the right approach
-- **[Merge Strategy Guide](docs/backstage-merge-strategy.md)** - Configuration merging
-- **[Resource Management](docs/backstage-resource-management.md)** - Lifecycle management
-- **[Resource Cleanup Guide](docs/CLEANUP_GUIDE.md)** - Safe cleanup procedures and guidelines
-- **[Implementation Summary](docs/IMPLEMENTATION_SUMMARY.md)** - Recent improvements and features
-- **[Test Documentation](tests/README.md)** - Testing guide and reference
+### Core Documentation
 
-### Quick Links
-- **Environment Setup**: `docs/getting-started.md`
-- **YAML Configuration**: `docs/configuration.md`
-- **Backstage Templates**: `templates/backstage/`
-- **Live Environments**: `live/dev/configs/`, `live/staging/configs/`, `live/prod/configs/`
+- **[🏗️ Architecture](docs/ARCHITECTURE.md)** - Repository structure, components, and design
+- **[⚙️ Commands](docs/COMMANDS.md)** - Complete command reference and usage examples
+- **[🧪 Testing](docs/TESTING.md)** - Testing framework and procedures
+- **[🔒 Security](docs/SECURITY.md)** - Security best practices and procedures
+- **[🛠️ Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[🤝 Contributing](docs/CONTRIBUTING.md)** - Development workflow and standards
+
+### Specialized Guides
+
+- **[🎯 IP Reservation Template](docs/BACKSTAGE_IP_RESERVATION_TEMPLATE.md)** - Backstage template guide
+- **[🔄 Merge Strategy Guide](docs/backstage-merge-strategy.md)** - Configuration merging strategies
+- **[📦 Resource Management](docs/backstage-resource-management.md)** - Lifecycle management
+- **[🧹 Cleanup Guide](docs/CLEANUP_GUIDE.md)** - Safe cleanup procedures
+- **[📊 IP Management](docs/IP_ADDRESS_MANAGEMENT.md)** - IP allocation strategies
+- **[📈 Implementation Summary](docs/IMPLEMENTATION_SUMMARY.md)** - Recent features and improvements
+
+### Quick References
+
+- **Configuration Examples**: `live/dev/configs/`
+- **Template Files**: `templates/backstage/`
 - **Test Examples**: `tests/fixtures/`
+- **Scripts**: `scripts/`
 - **Pipeline Configuration**: `.github/workflows/`
 
 ## 🤝 Contributing
 
-### Development Workflow
+We welcome contributions! Please see our [Contributing Guide](docs/CONTRIBUTING.md) for:
+
+- **Development Workflow**: Fork, branch, test, submit
+- **Code Standards**: Terraform, Python, YAML, and shell script guidelines
+- **Testing Requirements**: Comprehensive testing before merging
+- **Documentation Standards**: Keep documentation updated
+- **Review Process**: Pull request and review procedures
+
+### Quick Contribution Steps
+
 1. **Fork the repository**
-2. **Create a feature branch** (`git checkout -b feature/new-feature`)
-3. **Make your changes**
-4. **Test thoroughly** (`./tests/run_all_tests.sh`)
-5. **Update documentation** as needed
-6. **Submit a pull request**
-
-### Code Standards
-- **Terraform**: Follow HashiCorp best practices
-- **Python**: Follow PEP 8 style guidelines
-- **YAML**: Use consistent indentation (2 spaces)
-- **Documentation**: Update README and docs for new features
-
-### Testing Requirements
-- **All tests must pass** before merging
-- **Add tests** for new functionality
-- **Validate** in development environment
-- **Document** any breaking changes
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
+2. **Create feature branch**: `git checkout -b feature/new-feature`
+3. **Make changes and test**: `make test-comprehensive`
+4. **Update documentation** as needed
+5. **Submit pull request** with clear description
 
 ## 🏆 Summary
 
-This Infoblox Terraform Automation Platform provides:
+The Infoblox Terraform Automation Platform provides:
 
 ✅ **Complete Infrastructure Management** with IPAM and DNS automation  
 ✅ **Multi-Environment Support** with dev/staging/production isolation  
@@ -904,3 +312,18 @@ This Infoblox Terraform Automation Platform provides:
 ✅ **Production-Ready** with security best practices and safety features  
 
 **Ready for immediate deployment and production use!**
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙋‍♂️ Support
+
+- **Documentation**: Complete guides in [docs/](docs/) directory
+- **Issues**: Report bugs or request features via GitHub Issues
+- **Discussions**: Join community discussions for questions and ideas
+- **Testing**: Run `make test-comprehensive` to validate your environment
+
+For troubleshooting, start with [🛠️ Troubleshooting Guide](docs/TROUBLESHOOTING.md).
