@@ -10,7 +10,7 @@ echo "=========================================="
 
 # Create temporary test environment
 TEST_DIR=$(mktemp -d)
-ENV_DIR="$TEST_DIR/environments/dev"
+ENV_DIR="$TEST_DIR/live/dev/configs"
 mkdir -p "$ENV_DIR"
 
 echo "📁 Test directory: $TEST_DIR"

@@ -69,7 +69,7 @@ echo "----------------------------"
 
 # Create simple test
 TEST_DIR=$(mktemp -d)
-ENV_DIR="$TEST_DIR/environments/dev"
+ENV_DIR="$TEST_DIR/live/dev/configs"
 mkdir -p "$ENV_DIR"
 
 cat > "$ENV_DIR/a-records.yaml" << 'EOF'
