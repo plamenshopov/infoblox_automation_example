@@ -13,18 +13,18 @@ RED = \033[0;31m
 NC = \033[0m
 
 help: ## Show this help message
-	@echo "$(BLUE)Infoblox Terraform Automation$(NC)"
+	@echo "$(BLUE)Infoblox Terragrunt Automation$(NC)"
 	@echo "Usage: make [target] ENV=[environment]"
 	@echo ""
-	@echo "$(YELLOW)Standard Terraform targets:$(NC)"
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / && !/^tg-/ {printf "  $(GREEN)%-15s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
-	@echo ""
-	@echo "$(YELLOW)Terragrunt targets:$(NC)"
+	@echo "$(YELLOW)Terragrunt targets (Primary):$(NC)"
 	@awk 'BEGIN {FS = ":.*?## "} /^tg-[a-zA-Z_-]+:.*?## / {printf "  $(GREEN)%-15s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
+	@echo "$(YELLOW)Utility targets:$(NC)"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / && !/^tg-/ && !/^[a-z]*-[a-z]*:/ {printf "  $(GREEN)%-15s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@echo ""
 	@echo "Available environments: dev, staging, prod"
-	@echo "Example: make plan ENV=dev"
-	@echo "Example: make tg-plan ENV=staging"
+	@echo "Primary usage: make tg-plan ENV=dev"
+	@echo "Quick usage: make tg-dev-apply"
 
 check-deps: ## Check if required dependencies are installed
 	@echo "$(BLUE)Checking dependencies...$(NC)"
@@ -49,26 +49,30 @@ format: ## Format Terraform files
 lint: ## Lint Terraform files
 	@echo "$(BLUE)Linting Terraform files...$(NC)"
 	@terraform fmt -check -recursive . || { echo "$(YELLOW)Some files need formatting. Run 'make format'$(NC)"; }
-	@cd environments/$(ENV) && terraform validate
+	@cd live/$(ENV) && terragrunt validate
 	@echo "$(GREEN)Terraform files are valid$(NC)"
 
-init: check-deps ## Initialize Terraform for specified environment
+init: check-deps ## [DEPRECATED] Initialize Terraform for specified environment (use tg-* targets instead)
+	@echo "$(YELLOW)WARNING: This target is deprecated. Use 'make tg-plan ENV=$(ENV)' instead$(NC)"
 	@echo "$(BLUE)Initializing Terraform for $(ENV) environment...$(NC)"
-	@cd environments/$(ENV) && terraform init
+	@cd live/$(ENV) && terragrunt init
 	@echo "$(GREEN)Terraform initialized$(NC)"
 
-plan: validate init ## Create Terraform plan for specified environment
+plan: validate ## [DEPRECATED] Create Terraform plan for specified environment (use tg-plan instead)
+	@echo "$(YELLOW)WARNING: This target is deprecated. Use 'make tg-plan ENV=$(ENV)' instead$(NC)"
 	@echo "$(BLUE)Creating Terraform plan for $(ENV) environment...$(NC)"
-	@./scripts/deploy.sh $(ENV) plan
+	@cd live/$(ENV) && terragrunt plan
 
-apply: validate init ## Apply Terraform changes for specified environment
+apply: validate ## [DEPRECATED] Apply Terraform changes for specified environment (use tg-apply instead)
+	@echo "$(YELLOW)WARNING: This target is deprecated. Use 'make tg-apply ENV=$(ENV)' instead$(NC)"
 	@echo "$(BLUE)Applying Terraform changes for $(ENV) environment...$(NC)"
-	@./scripts/deploy.sh $(ENV) apply
+	@cd live/$(ENV) && terragrunt apply
 
-destroy: init ## Destroy all resources in specified environment
+destroy: ## [DEPRECATED] Destroy all resources in specified environment (use tg-destroy instead)
+	@echo "$(YELLOW)WARNING: This target is deprecated. Use 'make tg-destroy ENV=$(ENV)' instead$(NC)"
 	@echo "$(RED)WARNING: This will destroy all resources in $(ENV) environment!$(NC)"
 	@read -p "Are you sure? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
-	@./scripts/deploy.sh $(ENV) destroy
+	@cd live/$(ENV) && terragrunt destroy
 
 clean: ## Clean up Terraform files
 	@echo "$(BLUE)Cleaning up Terraform files...$(NC)"
@@ -78,17 +82,20 @@ clean: ## Clean up Terraform files
 	@find . -name "tfplan-*" -type f -delete 2>/dev/null || true
 	@echo "$(GREEN)Cleanup completed$(NC)"
 
-show: init ## Show current Terraform state for specified environment
+show: ## [DEPRECATED] Show current Terraform state for specified environment (use tg-output instead)
+	@echo "$(YELLOW)WARNING: This target is deprecated. Use 'make tg-output ENV=$(ENV)' instead$(NC)"
 	@echo "$(BLUE)Showing Terraform state for $(ENV) environment...$(NC)"
-	@cd environments/$(ENV) && terraform show
+	@cd live/$(ENV) && terragrunt show
 
-output: init ## Show Terraform outputs for specified environment
+output: ## [DEPRECATED] Show Terraform outputs for specified environment (use tg-output instead) 
+	@echo "$(YELLOW)WARNING: This target is deprecated. Use 'make tg-output ENV=$(ENV)' instead$(NC)"
 	@echo "$(BLUE)Showing Terraform outputs for $(ENV) environment...$(NC)"
-	@cd environments/$(ENV) && terraform output
+	@cd live/$(ENV) && terragrunt output
 
-refresh: init ## Refresh Terraform state for specified environment
+refresh: ## [DEPRECATED] Refresh Terraform state for specified environment (use terragrunt directly)
+	@echo "$(YELLOW)WARNING: This target is deprecated. Use 'cd live/$(ENV) && terragrunt refresh' instead$(NC)"
 	@echo "$(BLUE)Refreshing Terraform state for $(ENV) environment...$(NC)"
-	@cd environments/$(ENV) && terraform refresh
+	@cd live/$(ENV) && terragrunt refresh
 
 docs: ## Generate documentation
 	@echo "$(BLUE)Generating documentation...$(NC)"
@@ -104,47 +111,52 @@ test: validate lint ## Run all tests and validations
 	done
 	@echo "$(GREEN)All tests passed$(NC)"
 
-setup-dev: ## Set up development environment
-	@echo "$(BLUE)Setting up development environment...$(NC)"
-	@cp environments/dev/terraform.tfvars.example environments/dev/terraform.tfvars
-	@echo "$(YELLOW)Please edit environments/dev/terraform.tfvars with your configuration$(NC)"
-	@echo "$(GREEN)Development environment setup completed$(NC)"
+setup-dev: ## [DEPRECATED] Set up development environment (not needed with Terragrunt)
+	@echo "$(YELLOW)WARNING: This target is no longer needed with Terragrunt$(NC)"
+	@echo "$(BLUE)With Terragrunt, just edit live/dev/terragrunt.hcl directly$(NC)"
+	@echo "$(GREEN)No setup required - Terragrunt handles configuration automatically$(NC)"
 
-setup-staging: ## Set up staging environment
-	@echo "$(BLUE)Setting up staging environment...$(NC)"
-	@cp environments/staging/terraform.tfvars.example environments/staging/terraform.tfvars 2>/dev/null || true
-	@echo "$(YELLOW)Please edit environments/staging/terraform.tfvars with your configuration$(NC)"
-	@echo "$(GREEN)Staging environment setup completed$(NC)"
+setup-staging: ## [DEPRECATED] Set up staging environment (not needed with Terragrunt)
+	@echo "$(YELLOW)WARNING: This target is no longer needed with Terragrunt$(NC)"
+	@echo "$(BLUE)With Terragrunt, just edit live/staging/terragrunt.hcl directly$(NC)"
+	@echo "$(GREEN)No setup required - Terragrunt handles configuration automatically$(NC)"
 
 backup-state: ## Backup Terraform state for specified environment
 	@echo "$(BLUE)Backing up Terraform state for $(ENV) environment...$(NC)"
 	@mkdir -p backups
-	@cd environments/$(ENV) && cp terraform.tfstate ../../backups/terraform.tfstate.$(ENV).$$(date +%Y%m%d_%H%M%S) 2>/dev/null || echo "No state file to backup"
+	@cd live/$(ENV) && cp terraform.tfstate ../../backups/terraform.tfstate.$(ENV).$$(date +%Y%m%d_%H%M%S) 2>/dev/null || echo "No state file to backup (using remote backend)"
 	@echo "$(GREEN)State backup completed$(NC)"
 
-# Development helpers
-dev-plan: ## Quick plan for dev environment
-	@make plan ENV=dev
+# Development helpers (deprecated - use tg-* targets)
+dev-plan: ## [DEPRECATED] Quick plan for dev environment (use tg-dev-plan)
+	@echo "$(YELLOW)WARNING: Use 'make tg-dev-plan' instead$(NC)"
+	@make tg-plan ENV=dev
 
-dev-apply: ## Quick apply for dev environment
-	@make apply ENV=dev
+dev-apply: ## [DEPRECATED] Quick apply for dev environment (use tg-dev-apply)
+	@echo "$(YELLOW)WARNING: Use 'make tg-dev-apply' instead$(NC)"
+	@make tg-apply ENV=dev
 
-dev-destroy: ## Quick destroy for dev environment
-	@make destroy ENV=dev
+dev-destroy: ## [DEPRECATED] Quick destroy for dev environment (use tg-dev-destroy)
+	@echo "$(YELLOW)WARNING: Use 'make tg-destroy ENV=dev' instead$(NC)"
+	@make tg-destroy ENV=dev
 
-staging-plan: ## Quick plan for staging environment
-	@make plan ENV=staging
+staging-plan: ## [DEPRECATED] Quick plan for staging environment (use tg-staging-plan)
+	@echo "$(YELLOW)WARNING: Use 'make tg-staging-plan' instead$(NC)"
+	@make tg-plan ENV=staging
 
-staging-apply: ## Quick apply for staging environment
-	@make apply ENV=staging
+staging-apply: ## [DEPRECATED] Quick apply for staging environment (use tg-staging-apply)
+	@echo "$(YELLOW)WARNING: Use 'make tg-staging-apply' instead$(NC)"
+	@make tg-apply ENV=staging
 
-prod-plan: ## Quick plan for production environment
-	@make plan ENV=prod
+prod-plan: ## [DEPRECATED] Quick plan for production environment (use tg-prod-plan)
+	@echo "$(YELLOW)WARNING: Use 'make tg-prod-plan' instead$(NC)"
+	@make tg-plan ENV=prod
 
-prod-apply: ## Quick apply for production environment (with extra confirmation)
+prod-apply: ## [DEPRECATED] Quick apply for production environment (use tg-prod-apply)
+	@echo "$(YELLOW)WARNING: Use 'make tg-prod-apply' instead$(NC)"
 	@echo "$(RED)WARNING: You are about to apply changes to PRODUCTION!$(NC)"
 	@read -p "Type 'PRODUCTION' to confirm: " confirm && [ "$$confirm" = "PRODUCTION" ] || exit 1
-	@make apply ENV=prod
+	@make tg-apply ENV=prod
 
 # Terragrunt targets
 tg-plan: check-terragrunt ## Plan with Terragrunt for specified environment

@@ -8,7 +8,7 @@ set -e
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-ENVIRONMENTS_DIR="$PROJECT_ROOT/environments"
+LIVE_DIR="$PROJECT_ROOT/live"
 
 # Colors for output
 RED='\033[0;31m'
@@ -209,11 +209,11 @@ main() {
     
     if [[ -z "$environment" ]]; then
         echo "Usage: $0 <environment>"
-        echo "Available environments: $(ls "$ENVIRONMENTS_DIR" 2>/dev/null | tr '\n' ' ')"
+        echo "Available environments: $(ls "$LIVE_DIR" 2>/dev/null | tr '\n' ' ')"
         exit 1
     fi
     
-    local env_dir="$ENVIRONMENTS_DIR/$environment"
+    local env_dir="$LIVE_DIR/$environment"
     
     if [[ ! -d "$env_dir" ]]; then
         log_error "Environment '$environment' not found!"

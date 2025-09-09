@@ -11,27 +11,22 @@ This repository provides a complete automation platform for Infoblox infrastruct
 ### Repository Structure
 ```
 infoblox/
-├── 📁 environments/              # Standard Terraform environments
-│   ├── dev/                     # Development environment
-│   │   ├── configs/            # YAML configuration files
-│   │   │   ├── networks.yaml   # Network definitions
-│   │   │   ├── dns-zones.yaml  # DNS zone configurations
-│   │   │   ├── a-records.yaml  # A record definitions
-│   │   │   ├── cname-records.yaml # CNAME record definitions
-│   │   │   └── host-records.yaml  # Host record definitions
-│   │   ├── main.tf             # Environment-specific Terraform
-│   │   ├── variables.tf        # Environment variables
-│   │   ├── outputs.tf          # Environment outputs
-│   │   └── terraform.tfvars.example
-│   ├── staging/                # Staging environment
-│   └── prod/                   # Production environment
-├── 📁 live/                    # Terragrunt DRY structure (recommended)
+├── 📁 live/                    # Terragrunt environments (DRY approach)
 │   ├── terragrunt.hcl         # Root Terragrunt configuration
-│   ├── dev/                   # Terragrunt dev environment
+│   ├── dev/                   # Development environment
 │   │   ├── terragrunt.hcl     # Environment-specific config
-│   │   └── configs/           # Environment configurations
-│   ├── staging/               # Terragrunt staging environment
-│   └── prod/                  # Terragrunt production environment
+│   │   └── configs/           # YAML configuration files
+│   │       ├── networks.yaml   # Network definitions
+│   │       ├── dns-zones.yaml  # DNS zone configurations
+│   │       ├── a-records.yaml  # A record definitions
+│   │       ├── cname-records.yaml # CNAME record definitions
+│   │       └── host-records.yaml  # Host record definitions
+│   ├── staging/               # Staging environment
+│   │   ├── terragrunt.hcl     # Environment-specific config
+│   │   └── configs/           # YAML configuration files
+│   └── prod/                  # Production environment
+│       ├── terragrunt.hcl     # Environment-specific config
+│       └── configs/           # YAML configuration files
 ├── 📁 modules/                # Reusable Terraform modules
 │   ├── ipam/                  # IPAM resource management
 │   │   ├── main.tf           # IPAM module implementation
@@ -126,12 +121,12 @@ infoblox/
 
 ### Required Software
 - **Terraform** >= 1.0
+- **Terragrunt** >= 0.50 (primary deployment tool)
 - **Python** 3.x with PyYAML (`pip install PyYAML`)
 - **Git** for version control
 - **Make** for automation commands
 
 ### Recommended Software
-- **Terragrunt** >= 0.50 (for DRY configuration management)
 - **Azure CLI** (for Azure Storage state backend)
 - **jq** (for JSON processing in scripts)
 
@@ -145,9 +140,6 @@ infoblox/
 
 ### 1. Environment Setup
 
-Choose your preferred approach:
-
-#### Option A: Terragrunt (Recommended)
 ```bash
 # Clone the repository
 git clone <repository-url>
@@ -167,26 +159,9 @@ make check-terragrunt
 make tg-dev-plan
 ```
 
-#### Option B: Standard Terraform
-```bash
-# Clone the repository
-git clone <repository-url>
-cd infoblox
-
-# Setup development environment
-make setup-dev
-
-# Edit configuration
-vim environments/dev/terraform.tfvars
-
-# Validate and deploy
-make dev-plan
-make dev-apply
-```
-
 ### 2. Configuration
 
-Create your first configuration in `environments/dev/configs/`:
+Create your first configuration in `live/dev/configs/`:
 
 #### Networks (`networks.yaml`)
 ```yaml
@@ -254,13 +229,15 @@ dev_api_server:
 Deploy your configuration:
 
 ```bash
-# Using Terragrunt (recommended)
+# Plan changes
 make tg-plan ENV=dev        # Review changes
+
+# Apply changes
 make tg-apply ENV=dev       # Apply changes
 
-# Using standard Terraform
-make plan ENV=dev           # Review changes
-make apply ENV=dev          # Apply changes
+# Quick commands
+make tg-dev-plan           # Quick plan for dev
+make tg-dev-apply          # Quick apply for dev
 ```
 
 ## 🤖 Backstage Integration
@@ -375,86 +352,68 @@ gh workflow run process-backstage-records.yml \
 
 ### Makefile Commands
 
-#### Standard Terraform Commands
+#### Terragrunt Commands (Primary)
 ```bash
 # Environment management
 make help                    # Show all available commands
+make check-terragrunt        # Verify Terragrunt installation
 make check-deps             # Verify required dependencies
-make setup-dev              # Setup development environment
-make setup-staging          # Setup staging environment
+
+# Deployment commands
+make tg-plan ENV=dev        # Plan with Terragrunt
+make tg-apply ENV=dev       # Apply with Terragrunt
+make tg-destroy ENV=dev     # Destroy with Terragrunt
+make tg-output ENV=dev      # Show Terragrunt outputs
+
+# Multi-environment commands
+make tg-plan-all            # Plan all environments
+make tg-graph               # Generate dependency graph
+
+# Quick Terragrunt commands
+make tg-dev-plan            # Quick plan for dev
+make tg-dev-apply           # Quick apply for dev
+make tg-staging-plan        # Quick plan for staging
+make tg-staging-apply       # Quick apply for staging
+make tg-prod-plan           # Quick plan for production
+make tg-prod-apply          # Quick apply for production
 
 # Configuration management
 make validate ENV=dev       # Validate configuration
 make format                 # Format Terraform files
 make lint                   # Lint Terraform files
-make init ENV=dev          # Initialize Terraform
-
-# Deployment commands
-make plan ENV=dev          # Create deployment plan
-make apply ENV=dev         # Apply changes
-make destroy ENV=dev       # Destroy resources (with confirmation)
-make refresh ENV=dev       # Refresh state
-
-# State management
-make show ENV=dev          # Show current state
-make output ENV=dev        # Show outputs
-make backup-state ENV=dev  # Backup current state
-
-# Quick commands
-make dev-plan              # Quick plan for dev
-make dev-apply             # Quick apply for dev
-make staging-plan          # Quick plan for staging
-make staging-apply         # Quick apply for staging
-make prod-plan             # Quick plan for production
-make prod-apply            # Quick apply for production (with extra confirmation)
 
 # Utility commands
-make clean                 # Clean up Terraform files
-make docs                  # Generate documentation
-make test                  # Run all tests and validations
+make tg-clean               # Clean Terragrunt cache
+make clean                  # Clean up Terraform files
+make docs                   # Generate documentation
+make test                   # Run all tests and validations
 ```
 
-#### Terragrunt Commands (Recommended)
+#### Legacy Terraform Commands (Deprecated)
 ```bash
-# Terragrunt-specific commands
-make check-terragrunt      # Verify Terragrunt installation
-make tg-plan ENV=dev      # Plan with Terragrunt
-make tg-apply ENV=dev     # Apply with Terragrunt
-make tg-destroy ENV=dev   # Destroy with Terragrunt
-make tg-output ENV=dev    # Show Terragrunt outputs
-
-# Multi-environment commands
-make tg-plan-all          # Plan all environments
-make tg-graph             # Generate dependency graph
-
-# Quick Terragrunt commands
-make tg-dev-plan          # Quick plan for dev
-make tg-dev-apply         # Quick apply for dev
-make tg-staging-plan      # Quick plan for staging
-make tg-staging-apply     # Quick apply for staging
-make tg-prod-plan         # Quick plan for production
-make tg-prod-apply        # Quick apply for production
-
-# Utility commands
-make tg-clean             # Clean Terragrunt cache
+# These commands are deprecated but kept for reference
+make init ENV=dev          # Initialize Terraform (deprecated)
+make plan ENV=dev          # Create deployment plan (deprecated) 
+make apply ENV=dev         # Apply changes (deprecated)
+make destroy ENV=dev       # Destroy resources (deprecated)
 ```
 
 ### Script Commands
 
 #### Deployment Scripts
 ```bash
-# Standard Terraform deployment
-./scripts/deploy.sh dev plan      # Plan deployment
-./scripts/deploy.sh dev apply     # Apply changes
-./scripts/deploy.sh dev destroy   # Destroy resources
-
-# Terragrunt deployment
+# Terragrunt deployment (primary)
 ./scripts/terragrunt-deploy.sh dev plan    # Plan with Terragrunt
 ./scripts/terragrunt-deploy.sh dev apply   # Apply with Terragrunt
 ./scripts/terragrunt-deploy.sh all plan    # Plan all environments
 
 # Configuration validation
 ./scripts/validate-config.sh dev           # Validate dev environment
+
+# Standard Terraform deployment (deprecated)
+./scripts/deploy.sh dev plan      # Plan deployment (deprecated)
+./scripts/deploy.sh dev apply     # Apply changes (deprecated)
+./scripts/deploy.sh dev destroy   # Destroy resources (deprecated)
 ```
 
 #### Backstage Management Scripts
@@ -474,15 +433,15 @@ python3 scripts/merge-backstage-config.py dev \
 
 # Resource management
 python3 scripts/manage-backstage-resources.py \
-  --config-path environments/dev/configs \
+  --config-path live/dev/configs \
   list                           # List all Backstage resources
 
 python3 scripts/manage-backstage-resources.py \
-  --config-path environments/dev/configs \
+  --config-path live/dev/configs \
   find my-app                    # Find resources by entity
 
 python3 scripts/manage-backstage-resources.py \
-  --config-path environments/dev/configs \
+  --config-path live/dev/configs \
   cleanup my-app-dev-20250909120000  # Generate cleanup config
 
 python3 scripts/manage-backstage-resources.py \
@@ -742,7 +701,7 @@ terragrunt plan --terragrunt-log-level debug
 ### Support Resources
 - **Documentation**: Check `docs/` directory for detailed guides
 - **Test Suite**: Run `./tests/run_all_tests.sh` to verify functionality
-- **Configuration Examples**: See environment directories for samples
+- **Configuration Examples**: See `live/` directories for samples
 - **GitHub Issues**: Report bugs and feature requests
 
 ## 📚 Documentation
@@ -760,6 +719,7 @@ terragrunt plan --terragrunt-log-level debug
 - **Environment Setup**: `docs/getting-started.md`
 - **YAML Configuration**: `docs/configuration.md`
 - **Backstage Templates**: `templates/backstage/`
+- **Live Environments**: `live/dev/configs/`, `live/staging/configs/`, `live/prod/configs/`
 - **Test Examples**: `tests/fixtures/`
 - **Pipeline Configuration**: `.github/workflows/`
 

@@ -1,8 +1,0 @@
-# Development Environment Variables
-# Copy this file to terraform.tfvars and fill in your actual values
-
-# Infoblox Connection Details
-infoblox_username   = "admin"
-infoblox_password   = "your-password-here"
-infoblox_server     = "infoblox-dev.company.com"
-infoblox_ssl_verify = false

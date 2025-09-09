@@ -93,7 +93,7 @@ find_backstage_resources() {
     
     log_info "Searching for Backstage resources..."
     
-    cd "$PROJECT_ROOT/environments/$env" || {
+    cd "$PROJECT_ROOT/live/$env" || {
         log_error "Environment directory not found: $env"
         exit 1
     }
@@ -160,7 +160,7 @@ backup_configurations() {
     mkdir -p "$backup_dir"
     
     # Backup current configurations
-    cp "$PROJECT_ROOT/environments/$env/"*.yaml "$backup_dir/" 2>/dev/null || true
+    cp "$PROJECT_ROOT/live/$env/configs/"*.yaml "$backup_dir/" 2>/dev/null || true
     
     # Create cleanup metadata
     jq -n --argjson resources "$(cat /tmp/filtered_resources.json)" \
@@ -182,7 +182,7 @@ remove_from_yaml_configs() {
     jq -r '.[] | "\(.source_file):\(.resource_name)"' /tmp/filtered_resources.json | while read -r resource_info; do
         local source_file=$(echo "$resource_info" | cut -d: -f1)
         local resource_name=$(echo "$resource_info" | cut -d: -f2)
-        local config_file="$PROJECT_ROOT/environments/$ENVIRONMENT/$source_file"
+        local config_file="$PROJECT_ROOT/live/$ENVIRONMENT/configs/$source_file"
         
         if [[ -f "$config_file" ]]; then
             log_info "Removing $resource_name from $source_file"
@@ -248,7 +248,7 @@ execute_terraform_destroy() {
         done < /tmp/terraform_targets.txt
         
     else
-        cd "$PROJECT_ROOT/environments/$env"
+        cd "$PROJECT_ROOT/live/$env"
         
         # Create terraform.tfvars if it doesn't exist
         if [[ ! -f "terraform.tfvars" ]]; then
@@ -347,7 +347,7 @@ main() {
     if [[ "$USE_TERRAGRUNT" == "true" ]]; then
         env_dir="$PROJECT_ROOT/live/$ENVIRONMENT"
     else
-        env_dir="$PROJECT_ROOT/environments/$ENVIRONMENT"
+        env_dir="$PROJECT_ROOT/live/$ENVIRONMENT"
     fi
     
     if [[ ! -d "$env_dir" ]]; then

@@ -18,7 +18,7 @@ class BackstageMerger:
     def __init__(self, environment: str, config_path: str = "."):
         self.environment = environment
         self.config_path = Path(config_path)
-        self.target_dir = self.config_path / "environments" / environment
+        self.target_dir = self.config_path / "live" / environment / "configs"
         self.backup_dir = None
         
     def create_backup(self) -> str:
@@ -238,9 +238,9 @@ class BackstageMerger:
         
         report += f"""
 ## Next Steps:
-1. Review the merged configurations in `environments/{self.environment}/`
+1. Review the merged configurations in `live/{self.environment}/configs/`
 2. Run validation: `./scripts/validate-config.sh {self.environment}`
-3. Test with Terraform plan: `cd environments/{self.environment} && terraform plan`
+3. Test with Terragrunt plan: `cd live/{self.environment} && terragrunt plan`
 4. If issues occur, restore from backup: `{backup_path}`
 
 ## Cleanup:
