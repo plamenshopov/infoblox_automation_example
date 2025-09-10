@@ -135,7 +135,7 @@ spec:
       input:
         repoUrl: github.com?repo=infoblox-automation&owner=your-org
         title: 'Add DNS record: ${{ parameters.recordName }} (${{ parameters.entityName }})'
-        branchName: 'add-dns-record-${{ parameters.entityName }}-${{ now | date('YYYYMMDDHHmmss') }}'
+        branchName: add-dns-record-${{ parameters.entityName }}-${{ now | date('YYYYMMDDHHmmss') }}
         description: |
           ## DNS Record Creation Request
           
