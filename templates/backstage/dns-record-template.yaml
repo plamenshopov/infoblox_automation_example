@@ -117,7 +117,7 @@ spec:
         targetPath: environments/${{ parameters.environment }}
         values:
           entityName: ${{ parameters.entityName }}
-          backstageId: ${{ parameters.entityName }}-${{ parameters.environment }}-${{ "" | now | date('YYYYMMDDHHmmss') }}
+          backstageId: ${{ parameters.entityName }}-${{ parameters.environment }}-${{ now | date('YYYYMMDDHHmmss') }}
           recordName: ${{ parameters.recordName }}
           recordType: ${{ parameters.recordType }}
           environment: ${{ parameters.environment }}
@@ -135,12 +135,12 @@ spec:
       input:
         repoUrl: github.com?repo=infoblox-automation&owner=your-org
         title: 'Add DNS record: ${{ parameters.recordName }} (${{ parameters.entityName }})'
-        branchName: 'add-dns-record-${{ parameters.entityName }}-${{ "" | now | date('YYYYMMDDHHmmss') }}'
+        branchName: 'add-dns-record-${{ parameters.entityName }}-${{ now | date('YYYYMMDDHHmmss') }}'
         description: |
           ## DNS Record Creation Request
           
           **Entity:** ${{ parameters.entityName }}
-          **Backstage ID:** ${{ parameters.entityName }}-${{ parameters.environment }}-${{ "" | now | date('YYYYMMDDHHmmss') }}
+          **backstageId: ${{ parameters.entityName }}-${{ parameters.environment }}-${{ now | date('YYYYMMDDHHmmss') }}
           **Record Name:** ${{ parameters.recordName }}
           **Record Type:** ${{ parameters.recordType }}
           **Environment:** ${{ parameters.environment }}
